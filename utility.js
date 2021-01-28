@@ -6,7 +6,7 @@ function parse_log(log_table) {
   $log_data = $(log_table);
 
   $start = $log_data.find('td[colspan="100%"]:eq(0)').parent();
-  $stop_list = $log_data.find('td[bgcolor="#000000"]').parent();
+  $stop_list = $log_data.find('td[bgcolor="#000000"], td[bgcolor="#eeee99"], td:contains("FAILED to convert the 2 Point Conversion")').parent();
 
   //get list of teams playing
   teams = [];
