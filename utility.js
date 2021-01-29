@@ -113,6 +113,7 @@ function parse_log(log_table) {
         first_read = '';
         first_target = '';
         final_target = '';
+        scramble_type = '';
         pass_type = '';
         pass_yards = '';
         yac = '';
@@ -155,6 +156,18 @@ function parse_log(log_table) {
           first_read = 'none';
         } else {
           first_read = 'open';
+        }
+
+        // scrambles
+        scramble_type = '';
+        if (pass_result == 'scramble' || pass_result == "sack") {
+          if ($rows.find('td:contains(" under pressure from the Right side ")').length > 0) {
+            scramble_type = 'pressure right';
+          } else if ($rows.find('td:contains(" under pressure from the Left side ")').length > 0) {
+            scramble_type = 'pressure left';
+          } else if ($rows.find('td:contains(" doesn\'t see anyone open ")').length > 0) {
+            scramble_type = 'coverage';
+          }
         }
 
         //targets
@@ -285,6 +298,7 @@ function parse_log(log_table) {
         first_read: first_read,
         first_target: first_target,
         final_target: final_target,
+        scramble_type: scramble_type,
         pass_type: pass_type,
         target_distance: pass_yards,
         yards_after_catch: yac
