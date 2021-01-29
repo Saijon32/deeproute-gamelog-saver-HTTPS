@@ -49,6 +49,7 @@ function parse_log(log_table) {
       //reset variable values for new play
       pass_type = '';
       pass_result = '';
+      pass_direction = '';
       first_read = '';
       first_target = '';
       final_target = '';
@@ -157,6 +158,13 @@ function parse_log(log_table) {
           pass_result = 'miss';
         } else if ($rows.find('td:contains("COMPLETE")').length > 0) {
           pass_result = 'catch';
+        }
+
+        // pass direction
+        if ($rows.find('td:contains(" thrown towards the sideline.")').length > 0) {
+          pass_direction = 'sideline';
+        } else if ($rows.find('td:contains(" thrown towards the middle of the field.")').length > 0) {
+          pass_direction = 'middle';
         }
 
         //1st read status
@@ -289,6 +297,7 @@ function parse_log(log_table) {
         run_type: run_type,
         pass_type: pass_type,
         pass_result: pass_result,
+        pass_direction: pass_direction,
         first_read: first_read,
         first_target: first_target,
         final_target: final_target,
