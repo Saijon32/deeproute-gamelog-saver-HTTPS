@@ -157,8 +157,6 @@ function parse_log(log_table) {
           pass_result = 'miss';
         } else if ($rows.find('td:contains("COMPLETE")').length > 0) {
           pass_result = 'catch';
-        } else {
-          pass_result = 'undefined';
         }
 
         //1st read status
