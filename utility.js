@@ -62,14 +62,20 @@ function parse_log(log_table) {
       def_blitz = (def.split('Blitzing :')[1] ? def.split('Blitzing :')[1].trim().replace(/, /g, '+') : 'none');
 
       //check for run vs pass
-      if ($rows.find('td:contains("Handoff")').length > 0 || $rows.find('td:contains("keeps it")').length > 0) {
+      if ($rows.find('td:contains("Handoff")').length > 0 || $rows.find('td:contains(" handoff ")').length > 0 || $rows.find('td:contains("keeps it")').length > 0) {
         play_type = 'run';
 
         //runner
         if ($rows.find('td:contains("keeps it")').length > 0) {
           runner = 'QB';
-        } else {
+          run_type = 'keeper';
+        } else if ($rows.find('td:contains("Handoff")').length > 0) {
           runner = $rows.find('td:contains("Handoff")').text().split('Handoff to ')[1].split(' ')[0].trim();
+          run_type = 'handoff';
+        } else {
+          // indicates a fumble on the handoff
+          runner = $rows.find('td:contains(" handoff ")').text().split(' to ')[1].split(' ')[0].trim();
+          run_type = 'fumbled handoff';
         }
 
         //hole
@@ -94,7 +100,13 @@ function parse_log(log_table) {
         }
 
         //yards total
-        total_yards = getYards($rows.find('td:contains("ard(s)"):eq(0)').text().match(/(-?\d+\s\d+ Yard)/i)[0].split(' Yard')[0]);
+        if (run_type != "fumbled handoff") {
+          total_yards = getYards($rows.find('td:contains("ard(s)"):eq(0)').text().match(/(-?\d+\s\d+ Yard)/i)[0].split(' Yard')[0]);
+        } else {
+          // this is wrong, unfortunately the actual yardage gained/lost is nontrivial to determine and a filler value will break things
+          // In the future, this should be replaced with yardage derived from the change in field position. 
+          total_yards = 0;
+        }
 
         //filler variables
         pass_result = '';
@@ -242,6 +254,7 @@ function parse_log(log_table) {
         //filler variables
         runner = '';
         hole = '';
+        run_type = '';
 
       }
 
@@ -266,6 +279,7 @@ function parse_log(log_table) {
         total_yards: total_yards,
         runner: runner,
         hole: hole,
+        run_type: run_type,
         pass_result: pass_result,
         first_read: first_read,
         first_target: first_target,
