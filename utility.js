@@ -6,7 +6,7 @@ function parse_log(log_table) {
   $log_data = $(log_table);
 
   $start = $log_data.find('td[colspan="100%"]:eq(0)').parent();
-  $stop_list = $log_data.find('td[bgcolor="#000000"]').parent();
+  $stop_list = $log_data.find('td[bgcolor="#000000"], td[bgcolor="#eeee99"], td:contains("FAILED to convert the 2 Point Conversion")').parent();
 
   //get list of teams playing
   teams = [];
@@ -46,6 +46,21 @@ function parse_log(log_table) {
       off_formation = off[1].split(',')[0].trim();
       off_play = off[2].trim();
 
+      //reset variable values for new play
+      pass_type = '';
+      pass_result = '';
+      pass_direction = '';
+      first_read = '';
+      first_target = '';
+      final_target = '';
+      scramble_type = '';
+      pass_yards = '';
+      yac = '';
+      runner = '';
+      hole = '';
+      run_type = '';
+      is_touchdown = 0;
+
       //defensive playcall
       def = plays.split('Defensive Package Was :')[1];
       def_pkg = def.split('Coverage :')[0].trim();
@@ -61,15 +76,26 @@ function parse_log(log_table) {
       // break down coverage ??
       def_blitz = (def.split('Blitzing :')[1] ? def.split('Blitzing :')[1].trim().replace(/, /g, '+') : 'none');
 
+      // check for offensive touchdowns
+      if ($rows.find('td:contains("Touchdown")').length > 0) {
+        is_touchdown = 1;
+      }
+
       //check for run vs pass
-      if ($rows.find('td:contains("Handoff")').length > 0 || $rows.find('td:contains("keeps it")').length > 0) {
+      if ($rows.find('td:contains("Handoff")').length > 0 || $rows.find('td:contains(" handoff ")').length > 0 || $rows.find('td:contains("keeps it")').length > 0) {
         play_type = 'run';
 
         //runner
         if ($rows.find('td:contains("keeps it")').length > 0) {
           runner = 'QB';
-        } else {
+          run_type = 'keeper';
+        } else if ($rows.find('td:contains("Handoff")').length > 0) {
           runner = $rows.find('td:contains("Handoff")').text().split('Handoff to ')[1].split(' ')[0].trim();
+          run_type = 'handoff';
+        } else {
+          // indicates a fumble on the handoff
+          runner = $rows.find('td:contains(" handoff ")').text().split(' to ')[1].split(' ')[0].trim();
+          run_type = 'fumbled handoff';
         }
 
         //hole
@@ -94,26 +120,33 @@ function parse_log(log_table) {
         }
 
         //yards total
-        total_yards = getYards($rows.find('td:contains("ard(s)"):eq(0)').text().match(/(-?\d+\s\d+ Yard)/i)[0].split(' Yard')[0]);
-
-        //filler variables
-        pass_result = '';
-        first_read = '';
-        first_target = '';
-        final_target = '';
-        pass_type = '';
-        pass_yards = '';
-        yac = '';
+        if (run_type != "fumbled handoff") {
+          total_yards = getYards($rows.find('td:contains("ard(s)"):eq(0)').text().match(/(-?\d+\s\d+ Yard)/i)[0].split(' Yard')[0]);
+        } else {
+          // this is wrong, unfortunately the actual yardage gained/lost is nontrivial to determine and a filler value will break things
+          // In the future, this should be replaced with yardage derived from the change in field position. 
+          total_yards = 0;
+        }
 
       } else {
         play_type = 'pass';
 
-        //pass result
-        if ($rows.find('td:contains("scrambles")').length > 0) {
-          pass_result = 'scramble';
-        } else if ($rows.find('td:contains("SACKED")').length > 0) {
-          pass_result = 'sack';
-        } else if ($rows.find('td:contains("DROPPED")').length > 0) {
+        //pass type
+        if ($rows.find('td:contains("SACKED")').length > 0) {
+          pass_type = 'sack';
+        } else if ($rows.find('td:contains(" and has decided to run!")').length > 0) {
+          // it should be possible to have a play which is both a sack and a scramble
+          pass_type = 'scramble';
+        } else if ($rows.find('td:contains("threw the ball away")').length > 0) {
+          pass_type = 'throw away';
+        } else if ($rows.find('td:contains("dump it off")').length > 0) {
+          pass_type = 'dump off';
+        } else {
+          pass_type = 'target';
+        }
+
+        // pass result
+        if ($rows.find('td:contains("DROPPED")').length > 0) {
           pass_result = 'drop';
         } else if ($rows.find('td:contains("pass defended")').length > 0) {
           pass_result = 'pass defended';
@@ -123,16 +156,15 @@ function parse_log(log_table) {
           pass_result = 'intercepted';
         } else if ($rows.find('td:contains("INCOMPLETE")').length > 0) {
           pass_result = 'miss';
-        } else if ($rows.find('td:contains("Touchdown")').length > 0) {
-          pass_result = 'touchdown';
-        } else if ($rows.find('td:contains("threw the ball away")').length > 0) {
-          pass_result = 'throw away';
-        } else if ($rows.find('td:contains("dump it off")').length > 0) {
-          pass_result = 'dump off';
         } else if ($rows.find('td:contains("COMPLETE")').length > 0) {
           pass_result = 'catch';
-        } else {
-          pass_result = 'undefined';
+        }
+
+        // pass direction
+        if ($rows.find('td:contains(" thrown towards the sideline.")').length > 0) {
+          pass_direction = 'sideline';
+        } else if ($rows.find('td:contains(" thrown towards the middle of the field.")').length > 0) {
+          pass_direction = 'middle';
         }
 
         //1st read status
@@ -144,6 +176,18 @@ function parse_log(log_table) {
           first_read = 'open';
         }
 
+        // scrambles
+        scramble_type = '';
+        if (pass_type == 'scramble' || pass_type == "sack") {
+          if ($rows.find('td:contains(" under pressure from the Right side ")').length > 0) {
+            scramble_type = 'pressure right';
+          } else if ($rows.find('td:contains(" under pressure from the Left side ")').length > 0) {
+            scramble_type = 'pressure left';
+          } else if ($rows.find('td:contains(" doesn\'t see anyone open ")').length > 0) {
+            scramble_type = 'coverage';
+          }
+        }
+
         //targets
         if ($rows.find('td:contains("primary option was")').length > 0) {
           first_target = $rows.find('td:contains("primary option was")').text().split('primary option was ')[1].split(' ')[0].trim();
@@ -151,17 +195,19 @@ function parse_log(log_table) {
           if (td.length > 0) {
             if (td.text().indexOf('DROPPED') > -1) {
               final_target = td.text().split('DROPPED by ')[1].split(' ')[0].trim();
-            } else if (pass_result == 'throw away') {
+            } else if (pass_type == 'throw away') {
               final_target = 'none';
-            } else if (pass_result == 'catch' || pass_result == 'touchdown' || pass_result == 'dump off') {
+            } else if (pass_result == 'catch') {
               td = $rows.find('td:contains("COMPLETE")');
               if (td.text().includes("AMAZING")) {
-                final_target = td.text().split('by ')[1].split(' ')[0].trim();
+                final_target = td.text().split(' by ')[1].split(' ')[0].trim();
               } else {
-                final_target = td.text().split('to ')[1].split(' ')[0].trim();
+                final_target = td.text().split(' to ')[1].split(' ')[0].trim();
               }
+            } else if (pass_result == 'batted pass') {
+              final_target = td.text().split(',to ')[1].split(' ')[0].trim();
             } else {
-              final_target = td.text().split('to ')[1].split(' ')[0].trim();
+              final_target = td.text().split(' to ')[1].split(' ')[0].trim();
             }
           } else {
             final_target = 'none';
@@ -174,17 +220,19 @@ function parse_log(log_table) {
           if (td.length > 0) {
             if (pass_result == 'drop') {
               first_target = td.text().split('DROPPED by ')[1].split(' ')[0].trim();
-            } else if (pass_result == 'throw away') {
+            } else if (pass_type == 'throw away') {
               first_target = 'none';
-            } else if (pass_result == 'catch' || pass_result == 'touchdown' || pass_result == 'dump off') {
+            } else if (pass_result == 'catch') {
               td = $rows.find('td:contains("COMPLETE")');
               if (td.text().includes("AMAZING")) {
-                first_target = td.text().split('by ')[1].split(' ')[0].trim();
+                first_target = td.text().split(' by ')[1].split(' ')[0].trim();
               } else {
-                first_target = td.text().split('to ')[1].split(' ')[0].trim();
+                first_target = td.text().split(' to ')[1].split(' ')[0].trim();
               }
+            } else if (pass_result == 'batted pass') {
+              final_target = td.text().split(',to ')[1].split(' ')[0].trim();
             } else {
-              first_target = td.text().split('to ')[1].split(' ')[0].trim();
+              first_target = td.text().split(' to ')[1].split(' ')[0].trim();
             }
             final_target = first_target;
           } else {
@@ -195,7 +243,6 @@ function parse_log(log_table) {
         }
 
         //yardage
-        pass_type = 'none';
         td = $rows.find('td:contains("ard(s)")');
         if (td.length == 0) {
           td = $rows.find('td:contains("SACKED")'); //special case for a sack
@@ -205,19 +252,8 @@ function parse_log(log_table) {
           if (final_target != 'none') {
             pass_yards = getYards(td.text().match(/(-?\d+\s\d+ Yard)/i)[0].split(' yard')[0]);
 
-            //denote pass type for easier filtering
-            if (pass_yards <= 5) {
-              pass_type = 'short - 5 yards or less';
-            } else if (pass_yards <= 10) {
-              pass_type = 'medium - 5 to 10 yards';
-            } else if (pass_yards <= 15) {
-              pass_type = 'long - 10 to 15 yards';
-            } else {
-              pass_type = 'deep - more than 15 yards';
-            }
-
             //was it complete
-            if (pass_result == 'catch' || pass_result == 'touchdown' || pass_result == 'dump off') {
+            if (pass_result == 'catch') {
               total_yards = getYards(td.text().split('COMPLETE')[1].match(/(-?\d+\s\d+ Yard)/i)[0].split(' Yard')[0]);
               yac = (total_yards - pass_yards).toFixed(2);
             } else {
@@ -234,10 +270,6 @@ function parse_log(log_table) {
           total_yards = 0;
           yac = 0;
         }
-
-        //filler variables
-        runner = '';
-        hole = '';
 
       }
 
@@ -262,13 +294,17 @@ function parse_log(log_table) {
         total_yards: total_yards,
         runner: runner,
         hole: hole,
+        run_type: run_type,
+        pass_type: pass_type,
         pass_result: pass_result,
+        pass_direction: pass_direction,
         first_read: first_read,
         first_target: first_target,
         final_target: final_target,
-        pass_type: pass_type,
+        scramble_type: scramble_type,
         target_distance: pass_yards,
-        yards_after_catch: yac
+        yards_after_catch: yac,
+        is_touchdown: is_touchdown
       };
       game_log.push(play);
 
