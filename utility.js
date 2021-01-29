@@ -121,10 +121,11 @@ function parse_log(log_table) {
         play_type = 'pass';
 
         //pass result
-        if ($rows.find('td:contains("scrambles")').length > 0) {
-          pass_result = 'scramble';
-        } else if ($rows.find('td:contains("SACKED")').length > 0) {
+        if ($rows.find('td:contains("SACKED")').length > 0) {
           pass_result = 'sack';
+        } else if ($rows.find('td:contains(" and has decided to run!")').length > 0) {
+          // it should be possible to have a play which is both a sack and a scramble
+          pass_result = 'scramble';
         } else if ($rows.find('td:contains("DROPPED")').length > 0) {
           pass_result = 'drop';
         } else if ($rows.find('td:contains("pass defended")').length > 0) {
