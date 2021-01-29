@@ -46,6 +46,19 @@ function parse_log(log_table) {
       off_formation = off[1].split(',')[0].trim();
       off_play = off[2].trim();
 
+      //reset variable values for new play
+      pass_result = '';
+      first_read = '';
+      first_target = '';
+      final_target = '';
+      scramble_type = '';
+      pass_type = '';
+      pass_yards = '';
+      yac = '';
+      runner = '';
+      hole = '';
+      run_type = '';
+
       //defensive playcall
       def = plays.split('Defensive Package Was :')[1];
       def_pkg = def.split('Coverage :')[0].trim();
@@ -107,16 +120,6 @@ function parse_log(log_table) {
           // In the future, this should be replaced with yardage derived from the change in field position. 
           total_yards = 0;
         }
-
-        //filler variables
-        pass_result = '';
-        first_read = '';
-        first_target = '';
-        final_target = '';
-        scramble_type = '';
-        pass_type = '';
-        pass_yards = '';
-        yac = '';
 
       } else {
         play_type = 'pass';
@@ -264,11 +267,6 @@ function parse_log(log_table) {
           total_yards = 0;
           yac = 0;
         }
-
-        //filler variables
-        runner = '';
-        hole = '';
-        run_type = '';
 
       }
 
