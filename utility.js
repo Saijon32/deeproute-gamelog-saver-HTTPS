@@ -264,6 +264,9 @@ function parse_log(log_table) {
             pass_yards = 0;
             yac = 0;
             total_yards = getYards(td.text().match(/(-?\d+\s\d+ yard)/i)[0].split('ard')[0]);
+            if(pass_type === 'sack'){
+              total_yards = -1*Math.abs(total_yards); //fixing yardage for sacks
+            }
           }
         } else {
           pass_yards = 0;
