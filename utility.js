@@ -42,7 +42,9 @@ function parse_log(log_table) {
 
       //offensive playcall
       off = plays.split('Defensive Package Was :')[0].split(':');
-      off_pkg = off[0].split(',')[0].trim();
+      full_off_pkg = off[0].split(',')[0].trim();
+      off_pkg = full_off_pkg.split('(')[0].trim();
+      off_subpackage = full_off_pkg.split('(')[1].split(')')[0].trim();
       off_formation = off[1].split(',')[0].trim();
       off_play = off[2].trim();
 
@@ -285,6 +287,7 @@ function parse_log(log_table) {
         yard_line: yard_line,
         off_team: off_team,
         off_package: off_pkg,
+        off_subpackage: off_subpackage,
         off_formation: off_formation,
         off_play: off_play,
         play_type: play_type,
