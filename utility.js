@@ -13,6 +13,33 @@ function parse_log(log_table) {
   teams.push($log_data.find('td[colspan="100%"]:contains("- Q1"):eq(0)').text().split(' - ')[0].trim());
   teams.push($log_data.find('td[colspan="100%"]:contains("- Q3"):eq(0)').text().split(' - ')[0].trim());
 
+  log_header = $log_data.find('td[colspan="100%"][bgcolor="#eeffee"],[colspan="100%"][bgcolor="#eeeeff"]:contains(" wins the flip "):eq(0)').text();
+  name1 = log_header.split(' wins the flip and will receive. ')[0].trim();
+  name2 = log_header.split(' wins the flip and will receive. ')[1].split(' to kick off.')[0].trim();
+
+  // picking the first team in each of Q1 and Q3 fails if exactly one half starts with a KRTD
+  // if that happens, check to make sure this isn't one team playing itself, 
+  // then crawl the whole game until we find a new team abbreviation
+  if (teams[0] === teams[1] && name1 !== name2) {
+    console.log("teams are '" + teams[0] + "' and '" + teams[1] + "'!");
+    var got_second_team = false;
+    var i = 1;
+    while (i <= 4 && !got_second_team) {
+      var $quarter = $log_data.find('td[colspan="100%"]:contains("- Q' + i + '")');
+      var j = 0;
+      while (j < $quarter.length && !got_second_team) {
+        var abbr = $quarter.eq(j).text().split(' - ')[0].trim();
+        if (abbr !== teams[0]) {
+          teams[1] = abbr;
+          got_second_team = true;
+          console.log("teams are now '" + teams[0] + "' and '" + teams[1] + "'!");
+        }
+        j++;
+      }
+      i++;
+    }
+  }
+
   //loop through each section
   for (i = 0; i < $stop_list.length; i++) {
 
