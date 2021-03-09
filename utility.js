@@ -82,6 +82,10 @@ function parse_log(log_table) {
       first_read = '';
       first_target = '';
       final_target = '';
+      first_defender = '';
+      final_defender = '';
+      //double_defender = '';
+      //tackler = '';
       pressure_type = '';
       pass_yards = '';
       yac = '';
@@ -220,6 +224,7 @@ function parse_log(log_table) {
         //targets
         if ($rows.find('td:contains("primary option was")').length > 0) {
           first_target = $rows.find('td:contains("primary option was")').text().split('primary option was ')[1].split(' ')[0].trim();
+          first_defender = $rows.find('td:contains(".  Good coverage by ")').text().split('.  Good coverage by ')[1].split(' ')[0].trim();
           td = $rows.find('td:contains("Pass by")');
           if (td.length > 0) {
             if (td.text().indexOf('DROPPED') > -1) {
@@ -238,8 +243,16 @@ function parse_log(log_table) {
             } else {
               final_target = td.text().split(' to ')[1].split(' ')[0].trim();
             }
+
+            def_td = $rows.find('td:contains(" was the man covering on the play.")');
+            if (td.length > 0) {
+              final_defender = def_td.find('i').text().split(' ')[0].trim();
+            } else {
+              final_defender = 'none';
+            }
           } else {
             final_target = 'none';
+            final_defender = 'none';
           }
         } else {
           td = $rows.find('td:contains("Pass by")');
@@ -263,11 +276,22 @@ function parse_log(log_table) {
             } else {
               first_target = td.text().split(' to ')[1].split(' ')[0].trim();
             }
+
+            def_td = $rows.find('td:contains(" was the man covering on the play.")');
+            if (td.length > 0) {
+              first_defender = def_td.find('i').text().split(' ')[0].trim();
+            } else {
+              first_defender = 'none';
+            }
+
             final_target = first_target;
+            final_defender = first_defender;
           } else {
             first_read = 'none'; //modifies previous variable for special case
             first_target = 'none';
             final_target = 'none';
+            first_defender = 'none';
+            final_defender = 'none';
           }
         }
 
@@ -334,6 +358,8 @@ function parse_log(log_table) {
         first_read: first_read,
         first_target: first_target,
         final_target: final_target,
+        first_defender: first_defender,
+        final_defender: final_defender,
         pressure_type: pressure_type,
         target_distance: pass_yards,
         yards_after_catch: yac,
