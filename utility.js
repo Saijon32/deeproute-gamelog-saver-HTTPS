@@ -391,7 +391,7 @@ function parse_log(log_table) {
         pass_direction: pass_direction,
         first_read: first_read,
         first_target: first_target,
-        first_target_id: first_target_id;
+        first_target_id: first_target_id,
         final_target: final_target,
         final_target_id: final_target_id,
         first_defender: first_defender,
@@ -435,7 +435,7 @@ function getIdFromSlug(slug) {
   } else if (slug === 'none') {
     id = 'none';
   } else {
-    id = slug.match(';lookatplayer=(\d+)&amp;')[1];
+    id = slug.match('\;lookatplayer=(\.+)&amp\;')[1];
   }
   return id;
 }
