@@ -321,13 +321,13 @@ function parse_log(log_table) {
         }
 
         first_target = getPositionFromSlug(first_target_slug);
-        //first_target_id = getIdFromSlug(first_target_slug);
+        first_target_id = getIdFromSlug(first_target_slug);
         first_defender = getPositionFromSlug(first_defender_slug);
-        //first_defender_id = getIdFromSlug(first_defender_slug);
+        first_defender_id = getIdFromSlug(first_defender_slug);
         final_target = getPositionFromSlug(final_target_slug);
-        //final_target_id = getIdFromSlug(final_target_slug);
+        final_target_id = getIdFromSlug(final_target_slug);
         final_defender = getPositionFromSlug(final_defender_slug);
-        //final_defender_id = getIdFromSlug(final_defender_slug);
+        final_defender_id = getIdFromSlug(final_defender_slug);
 
         //yardage
         td = $rows.find('td:contains("ard(s)")');
@@ -391,13 +391,13 @@ function parse_log(log_table) {
         pass_direction: pass_direction,
         first_read: first_read,
         first_target: first_target,
-        // first_target_id: first_target_id;
+        first_target_id: first_target_id;
         final_target: final_target,
-        // final_target_id: final_target_id,
+        final_target_id: final_target_id,
         first_defender: first_defender,
-        // first_defender_id: first_defender_id,
+        first_defender_id: first_defender_id,
         final_defender: final_defender,
-        // final_defender_id: final_defender_id,
+        final_defender_id: final_defender_id,
         pressure_type: pressure_type,
         target_distance: pass_yards,
         yards_after_catch: yac,
