@@ -96,6 +96,7 @@ function parse_log(log_table) {
       pass_yards = '';
       yac = '';
       runner = '';
+      runner_slug = '';
       hole = '';
       run_type = '';
       is_touchdown = 0;
@@ -131,6 +132,9 @@ function parse_log(log_table) {
 
         //runner
         if ($rows.find('td:contains("keeps it")').length > 0) {
+          runner_slug = $rows.find('td:contains("keeps it")').html().match(/\)<\/b> - (.*) keeps it and /)[1];
+          console.log(runner_slug);
+
           runner = 'QB';
           run_type = 'keeper';
         } else if ($rows.find('td:contains("Handoff")').length > 0) {
@@ -234,36 +238,37 @@ function parse_log(log_table) {
 
         //targets
         if ($rows.find('td:contains("primary option was")').length > 0) {
-          first_target_slug = $rows.find('td:contains("primary option was")').html().match('primary option was (.*), but he has decided against ')[1];
-          first_defender_slug = $rows.find('td:contains(".  Good coverage by ")').html().match('.  Good coverage by (.*) on the play.')[1];
+          first_target_slug = $rows.find('td:contains("primary option was")').html().match(/primary option was (.*), but he has decided against /)[1];
+          first_defender_slug = $rows.find('td:contains(".  Good coverage by ")').html().match(/\.  Good coverage by (.*) on the play\./)[1];
           td = $rows.find('td:contains("Pass by")');
           if (td.length > 0) {
             if (td.text().indexOf('DROPPED') > -1) {
               drp_td = $rows.find('td:contains("DROPPED")');
-              final_target_slug = drp_td.html().match('DROPPED by (.*).')[1];
+              final_target_slug = drp_td.html().match(/DROPPED by (.*)\./)[1];
             } else if (pass_type == 'throw away') {
               final_target_slug = 'none';
             } else if (pass_result == 'catch') {
               td = $rows.find('td:contains("COMPLETE")');
               if (td.text().includes("AMAZING")) {
-                final_target_slug = td.html().match('<b>AMAZING</b> catch by (.*) on the pass from ')[1];
+                final_target_slug = td.html().match(/<b>AMAZING<\/b> catch by (.*) on the pass from /)[1];
               } else {
-                final_target_slug = td.html().match(' to (.*?), ')[1];
+                final_target_slug = td.html().match(/ to (.*?), /)[1];
               }
             } else if (pass_result == 'batted pass') {
               td = $rows.find('td:contains("... batted down ")');
-              final_target_slug = td.html().match(',to (.*?)... batted down ')[1];
+              final_target_slug = td.html().match(/,to (.*?)\.\.\. batted down /)[1];
+              console.log(final_target_slug);
             } else if (pass_result == 'intercepted') {
               td = $rows.find('td:contains(" INTERCEPTED by ")');
-              final_target_slug = td.html().match(' to (.*?), ')[1];
+              final_target_slug = td.html().match(/ to (.*?), /)[1];
             } else {
               td = $rows.find('td:contains(" INCOMPLETE.")');
-              final_target_slug = td.html().match(' to (.*?), ')[1];
+              final_target_slug = td.html().match(/ to (.*?), /)[1];
             }
 
             def_td = $rows.find('td:contains(" was the man covering on the play.")');
             if (def_td.length > 0) {
-              final_defender_slug = def_td.find('i').html().match('(.*) was the man covering on the play.')[1];
+              final_defender_slug = def_td.find('i').html().match(/(.*) was the man covering on the play\./)[1];
             } else {
               final_defender_slug = 'none';
             }
@@ -280,30 +285,31 @@ function parse_log(log_table) {
           if (td.length > 0) {
             if (pass_result == 'drop') {
               drp_td = $rows.find('td:contains("DROPPED")');
-              first_target_slug = drp_td.html().match('DROPPED by (.*).')[1];
+              first_target_slug = drp_td.html().match(/DROPPED by (.*)\./)[1];
             } else if (pass_type == 'throw away') {
               first_target_slug = 'none';
             } else if (pass_result == 'catch') {
               td = $rows.find('td:contains("COMPLETE")');
               if (td.text().includes("AMAZING")) {
-                first_target_slug = td.html().match('<b>AMAZING</b> catch by (.*) on the pass from ')[1];
+                first_target_slug = td.html().match(/<b>AMAZING<\/b> catch by (.*) on the pass from /)[1];
               } else {
-                first_target_slug = td.html().match(' to (.*?), ')[1];
+                first_target_slug = td.html().match(/ to (.*?), /)[1];
               }
             } else if (pass_result == 'batted pass') {
               td = $rows.find('td:contains("... batted down ")');
-              first_target_slug = td.html().match(',to (.*?)... batted down ')[1];
+              first_target_slug = td.html().match(/,to (.*?)\.\.\. batted down /)[1];
+              console.log(first_target_slug);
             } else if (pass_result == 'intercepted') {
               td = $rows.find('td:contains(" INTERCEPTED by ")');
-              first_target_slug = td.html().match(' to (.*?), ')[1];
+              first_target_slug = td.html().match(/ to (.*?), /)[1];
             } else {
               td = $rows.find('td:contains(" INCOMPLETE.")');
-              first_target_slug = td.html().match(' to (.*?), ')[1];
+              first_target_slug = td.html().match(/ to (.*?), /)[1];
             }
 
             def_td = $rows.find('td:contains(" was the man covering on the play.")');
             if (def_td.length > 0) {
-              first_defender_slug = def_td.find('i').html().match('(.*) was the man covering on the play')[1];
+              first_defender_slug = def_td.find('i').html().match(/(.*) was the man covering on the play/)[1];
             } else {
               first_defender_slug = 'none';
             }
