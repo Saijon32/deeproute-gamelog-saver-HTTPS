@@ -96,7 +96,6 @@ function parse_log(log_table) {
       pass_yards = '';
       yac = '';
       runner = '';
-      runner_slug = '';
       hole = '';
       run_type = '';
       is_touchdown = 0;
@@ -105,6 +104,7 @@ function parse_log(log_table) {
       final_target_slug = '';
       first_defender_slug = '';
       final_defender_slug = '';
+      runner_slug = '';
 
       //defensive playcall
       def = plays.split('Defensive Package Was :')[1];
@@ -133,15 +133,21 @@ function parse_log(log_table) {
         //runner
         if ($rows.find('td:contains("keeps it")').length > 0) {
           runner_slug = $rows.find('td:contains("keeps it")').html().match(/\)<\/b> - (.*) keeps it and /)[1];
-          console.log(runner_slug);
+          //console.log(runner_slug);
 
           runner = 'QB';
           run_type = 'keeper';
         } else if ($rows.find('td:contains("Handoff")').length > 0) {
+          runner_slug = $rows.find('td:contains("Handoff to ")').html().match(/Handoff to (.*), /)[1];
+          //console.log(runner_slug);
+
           runner = $rows.find('td:contains("Handoff")').text().split('Handoff to ')[1].split(' ')[0].trim();
           run_type = 'handoff';
         } else {
           // indicates a fumble on the handoff
+          runner_slug = $rows.find('td:contains(" handoff ")').html().match(/ to (.*)\./)[1];
+          console.log(runner_slug);
+
           runner = $rows.find('td:contains(" handoff ")').text().split(' to ')[1].split(' ')[0].trim();
           run_type = 'fumbled handoff';
         }
@@ -257,7 +263,6 @@ function parse_log(log_table) {
             } else if (pass_result == 'batted pass') {
               td = $rows.find('td:contains("... batted down ")');
               final_target_slug = td.html().match(/,to (.*?)\.\.\. batted down /)[1];
-              console.log(final_target_slug);
             } else if (pass_result == 'intercepted') {
               td = $rows.find('td:contains(" INTERCEPTED by ")');
               final_target_slug = td.html().match(/ to (.*?), /)[1];
@@ -298,7 +303,6 @@ function parse_log(log_table) {
             } else if (pass_result == 'batted pass') {
               td = $rows.find('td:contains("... batted down ")');
               first_target_slug = td.html().match(/,to (.*?)\.\.\. batted down /)[1];
-              console.log(first_target_slug);
             } else if (pass_result == 'intercepted') {
               td = $rows.find('td:contains(" INTERCEPTED by ")');
               first_target_slug = td.html().match(/ to (.*?), /)[1];
