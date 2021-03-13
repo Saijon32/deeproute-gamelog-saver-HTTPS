@@ -76,6 +76,8 @@ function parse_log(log_table) {
       off_play = off[2].trim();
 
       //reset variable values for new play
+      //passer = '';
+      //passer_id = '';
       pass_type = '';
       pass_result = '';
       pass_direction = '';
@@ -96,6 +98,7 @@ function parse_log(log_table) {
       pass_yards = '';
       yac = '';
       runner = '';
+      runner_id = '';
       hole = '';
       run_type = '';
       is_touchdown = 0;
@@ -133,24 +136,18 @@ function parse_log(log_table) {
         //runner
         if ($rows.find('td:contains("keeps it")').length > 0) {
           runner_slug = $rows.find('td:contains("keeps it")').html().match(/\)<\/b> - (.*) keeps it and /)[1];
-          //console.log(runner_slug);
-
-          runner = 'QB';
           run_type = 'keeper';
         } else if ($rows.find('td:contains("Handoff")').length > 0) {
           runner_slug = $rows.find('td:contains("Handoff to ")').html().match(/Handoff to (.*), /)[1];
-          //console.log(runner_slug);
-
-          runner = $rows.find('td:contains("Handoff")').text().split('Handoff to ')[1].split(' ')[0].trim();
           run_type = 'handoff';
         } else {
           // indicates a fumble on the handoff
           runner_slug = $rows.find('td:contains(" handoff ")').html().match(/ to (.*)\./)[1];
-          console.log(runner_slug);
-
-          runner = $rows.find('td:contains(" handoff ")').text().split(' to ')[1].split(' ')[0].trim();
           run_type = 'fumbled handoff';
         }
+
+        runner = getPositionFromSlug(runner_slug);
+        runner_id = getIdFromSlug(runner_slug);
 
         //hole
         if (off_play.indexOf('R1') > -1) {
@@ -394,6 +391,7 @@ function parse_log(log_table) {
         def_blitzer: def_blitz,
         total_yards: total_yards,
         runner: runner,
+        runner_id: runner_id,
         hole: hole,
         run_type: run_type,
         pass_type: pass_type,
