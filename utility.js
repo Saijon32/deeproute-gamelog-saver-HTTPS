@@ -21,7 +21,7 @@ function parse_log(log_table) {
   // if that happens, check to make sure this isn't one team playing itself, 
   // then crawl the whole game until we find a new team abbreviation
   if (teams[0] === teams[1] && name1 !== name2) {
-    console.log("teams are '" + teams[0] + "' and '" + teams[1] + "'!");
+    //console.log("teams are '" + teams[0] + "' and '" + teams[1] + "'!");
     var got_second_team = false;
     var i = 1;
     while (i <= 4 && !got_second_team) {
@@ -32,7 +32,7 @@ function parse_log(log_table) {
         if (abbr !== teams[0]) {
           teams[1] = abbr;
           got_second_team = true;
-          console.log("teams are now '" + teams[0] + "' and '" + teams[1] + "'!");
+          //console.log("teams are now '" + teams[0] + "' and '" + teams[1] + "'!");
         }
         j++;
       }
@@ -76,8 +76,7 @@ function parse_log(log_table) {
       off_play = off[2].trim();
 
       //reset variable values for new play
-      //passer = '';
-      //passer_id = '';
+      passer_id = '';
       pass_type = '';
       pass_result = '';
       pass_direction = '';
@@ -103,11 +102,18 @@ function parse_log(log_table) {
       run_type = '';
       is_touchdown = 0;
 
+      passer_slug = '';
       first_target_slug = '';
       final_target_slug = '';
       first_defender_slug = '';
       final_defender_slug = '';
       runner_slug = '';
+
+      // quarterback info
+      passer_slug = $rows.find('td:contains("- The ball is snapped to")').html().match(/The ball is snapped to (.*)\./)[1];
+      // the passer position is always going to be "QB", so why bother
+      // in the unlikely event of a change, updating this code is trivial
+      passer_id = getIdFromSlug(passer_slug);
 
       //defensive playcall
       def = plays.split('Defensive Package Was :')[1];
@@ -390,6 +396,7 @@ function parse_log(log_table) {
         roamer_job: roamer_job,
         def_blitzer: def_blitz,
         total_yards: total_yards,
+        passer_id: passer_id,
         runner: runner,
         runner_id: runner_id,
         hole: hole,
