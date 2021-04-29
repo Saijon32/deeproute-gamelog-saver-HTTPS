@@ -25,7 +25,10 @@ $(document).ready(function () {
 
             $.get(href, function (data) {
                 //parse data
-                var json_data = parse_log($(data).find('center'));
+                var json_data = parseLog(
+                    $(data).find('center'),
+                    $(data).find('#play1').parent()
+                );
 
                 //download data
                 download(json2csv(json_data), 'gamelog_' + this.url.split('viewpbp=')[1] + '.csv', 'text.csv');

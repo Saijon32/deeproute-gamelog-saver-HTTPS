@@ -27,7 +27,12 @@ $(document).ready(function () {
                 //get 
                 $.get(this.href, function (data) {
                     //parse data
-                    master_log = master_log.concat(parse_log($(data).find('center')));
+                    master_log = master_log.concat(
+                        parseLog(
+                            $(data).find('center'),
+                            $(data).find('#play1').parent()
+                        )
+                    );
 
                     //update conter
                     done_count++;

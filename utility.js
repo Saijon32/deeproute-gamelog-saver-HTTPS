@@ -1,5 +1,5 @@
 //main function used to parse the table element containing the game log
-function parse_log(log_table) {
+function parseLog(log_table,hidden_data) {
   var game_log = [];
 
   //format data into searchable jquery object
@@ -62,8 +62,18 @@ function parse_log(log_table) {
       down = snap[1].split('(')[1].split('and')[0].trim();
       dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
-      // score = ??????
+      
+      //use play identifier to get score and timeout data form hidden data
+      play_id_start = 'OFF1' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, ""); //FIXME Adding dist would be more precise, but it will fail on things like 5- since it's actuall 4.xx yards
+      play_state = $(hidden_data).find('input[value^=' + play_id_start + ']').eq(0).val();
+      points_away = play_state.substring(14, 16);
+      points_home = play_state.substring(16, 18);
+      timeouts_away = play_state.substring(26, 27);
+      timeouts_home = play_state.substring(27, 28);
+      possession = play_state.substring(30, 31);
 
+      //map state data to appropriate team?
+      
       //get playcalls
       plays = $rows.find('td:contains("Offensive Package Was :")').text().split('Offensive Package Was :')[1];
 
@@ -383,6 +393,11 @@ function parse_log(log_table) {
         down: down,
         distance: dist,
         yard_line: yard_line,
+        points_home: points_home,
+        points_away: points_away,
+        timeouts_home: timeouts_home,
+        timeouts_away: timeouts_away,
+        possession: possession,
         off_team: off_team,
         off_package: off_pkg,
         off_subpackage: off_subpackage,
