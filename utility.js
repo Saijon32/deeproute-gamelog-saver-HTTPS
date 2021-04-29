@@ -13,6 +13,33 @@ function parse_log(log_table) {
   teams.push($log_data.find('td[colspan="100%"]:contains("- Q1"):eq(0)').text().split(' - ')[0].trim());
   teams.push($log_data.find('td[colspan="100%"]:contains("- Q3"):eq(0)').text().split(' - ')[0].trim());
 
+  log_header = $log_data.find('td[colspan="100%"][bgcolor="#eeffee"],[colspan="100%"][bgcolor="#eeeeff"]:contains(" wins the flip "):eq(0)').text();
+  name1 = log_header.split(' wins the flip and will receive. ')[0].trim();
+  name2 = log_header.split(' wins the flip and will receive. ')[1].split(' to kick off.')[0].trim();
+
+  // picking the first team in each of Q1 and Q3 fails if exactly one half starts with a KRTD
+  // if that happens, check to make sure this isn't one team playing itself, 
+  // then crawl the whole game until we find a new team abbreviation
+  if (teams[0] === teams[1] && name1 !== name2) {
+    //console.log("teams are '" + teams[0] + "' and '" + teams[1] + "'!");
+    var got_second_team = false;
+    var i = 1;
+    while (i <= 4 && !got_second_team) {
+      var $quarter = $log_data.find('td[colspan="100%"]:contains("- Q' + i + '")');
+      var j = 0;
+      while (j < $quarter.length && !got_second_team) {
+        var abbr = $quarter.eq(j).text().split(' - ')[0].trim();
+        if (abbr !== teams[0]) {
+          teams[1] = abbr;
+          got_second_team = true;
+          //console.log("teams are now '" + teams[0] + "' and '" + teams[1] + "'!");
+        }
+        j++;
+      }
+      i++;
+    }
+  }
+
   //loop through each section
   for (i = 0; i < $stop_list.length; i++) {
 
@@ -35,31 +62,58 @@ function parse_log(log_table) {
       down = snap[1].split('(')[1].split('and')[0].trim();
       dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
-      // score = ??????       
+      // score = ??????
 
       //get playcalls
       plays = $rows.find('td:contains("Offensive Package Was :")').text().split('Offensive Package Was :')[1];
 
       //offensive playcall
       off = plays.split('Defensive Package Was :')[0].split(':');
-      off_pkg = off[0].split(',')[0].trim();
+      full_off_pkg = off[0].split(',')[0].trim();
+      off_pkg = full_off_pkg.split('(')[0].trim();
+      off_subpackage = full_off_pkg.split('(')[1].split(')')[0].trim();
       off_formation = off[1].split(',')[0].trim();
       off_play = off[2].trim();
 
       //reset variable values for new play
+      passer_id = '';
       pass_type = '';
       pass_result = '';
       pass_direction = '';
       first_read = '';
       first_target = '';
+      first_target_id = '';
       final_target = '';
+      final_target_id = '';
+      first_defender = '';
+      first_defender_id = '';
+      final_defender = '';
+      final_defender_id = '';
+      //double_defender = '';
+      //area_defender = '';
+      //tackler = '';
+      //pass_deflector = '';
       pressure_type = '';
       pass_yards = '';
       yac = '';
       runner = '';
+      runner_id = '';
       hole = '';
       run_type = '';
       is_touchdown = 0;
+
+      passer_slug = '';
+      first_target_slug = '';
+      final_target_slug = '';
+      first_defender_slug = '';
+      final_defender_slug = '';
+      runner_slug = '';
+
+      // quarterback info
+      passer_slug = $rows.find('td:contains("- The ball is snapped to")').html().match(/The ball is snapped to (.*)\./)[1];
+      // the passer position is always going to be "QB", so why bother
+      // in the unlikely event of a change, updating this code is trivial
+      passer_id = getIdFromSlug(passer_slug);
 
       //defensive playcall
       def = plays.split('Defensive Package Was :')[1];
@@ -87,16 +141,19 @@ function parse_log(log_table) {
 
         //runner
         if ($rows.find('td:contains("keeps it")').length > 0) {
-          runner = 'QB';
+          runner_slug = $rows.find('td:contains("keeps it")').html().match(/\)<\/b> - (.*) keeps it and /)[1];
           run_type = 'keeper';
         } else if ($rows.find('td:contains("Handoff")').length > 0) {
-          runner = $rows.find('td:contains("Handoff")').text().split('Handoff to ')[1].split(' ')[0].trim();
+          runner_slug = $rows.find('td:contains("Handoff to ")').html().match(/Handoff to (.*), /)[1];
           run_type = 'handoff';
         } else {
           // indicates a fumble on the handoff
-          runner = $rows.find('td:contains(" handoff ")').text().split(' to ')[1].split(' ')[0].trim();
+          runner_slug = $rows.find('td:contains(" handoff ")').html().match(/ to (.*)\./)[1];
           run_type = 'fumbled handoff';
         }
+
+        runner = getPositionFromSlug(runner_slug);
+        runner_id = getIdFromSlug(runner_slug);
 
         //hole
         if (off_play.indexOf('R1') > -1) {
@@ -190,27 +247,43 @@ function parse_log(log_table) {
 
         //targets
         if ($rows.find('td:contains("primary option was")').length > 0) {
-          first_target = $rows.find('td:contains("primary option was")').text().split('primary option was ')[1].split(' ')[0].trim();
+          first_target_slug = $rows.find('td:contains("primary option was")').html().match(/primary option was (.*), but he has decided against /)[1];
+          first_defender_slug = $rows.find('td:contains(".  Good coverage by ")').html().match(/\.  Good coverage by (.*) on the play\./)[1];
           td = $rows.find('td:contains("Pass by")');
           if (td.length > 0) {
             if (td.text().indexOf('DROPPED') > -1) {
-              final_target = td.text().split('DROPPED by ')[1].split(' ')[0].trim();
+              drp_td = $rows.find('td:contains("DROPPED")');
+              final_target_slug = drp_td.html().match(/DROPPED by (.*)\./)[1];
             } else if (pass_type == 'throw away') {
-              final_target = 'none';
+              final_target_slug = 'none';
             } else if (pass_result == 'catch') {
               td = $rows.find('td:contains("COMPLETE")');
               if (td.text().includes("AMAZING")) {
-                final_target = td.text().split(' by ')[1].split(' ')[0].trim();
+                final_target_slug = td.html().match(/<b>AMAZING<\/b> catch by (.*) on the pass from /)[1];
               } else {
-                final_target = td.text().split(' to ')[1].split(' ')[0].trim();
+                final_target_slug = td.html().match(/ to (.*?), /)[1];
               }
             } else if (pass_result == 'batted pass') {
-              final_target = td.text().split(',to ')[1].split(' ')[0].trim();
+              td = $rows.find('td:contains("... batted down ")');
+              final_target_slug = td.html().match(/,to (.*?)\.\.\. batted down /)[1];
+            } else if (pass_result == 'intercepted') {
+              td = $rows.find('td:contains(" INTERCEPTED by ")');
+              final_target_slug = td.html().match(/ to (.*?), /)[1];
             } else {
-              final_target = td.text().split(' to ')[1].split(' ')[0].trim();
+              td = $rows.find('td:contains(" INCOMPLETE.")');
+              final_target_slug = td.html().match(/ to (.*?), /)[1];
             }
+
+            def_td = $rows.find('td:contains(" was the man covering on the play.")');
+            if (def_td.length > 0) {
+              final_defender_slug = def_td.find('i').html().match(/(.*) was the man covering on the play\./)[1];
+            } else {
+              final_defender_slug = 'none';
+            }
+
           } else {
-            final_target = 'none';
+            final_target_slug = 'none';
+            final_defender_slug = 'none';
           }
         } else {
           td = $rows.find('td:contains("Pass by")');
@@ -219,28 +292,55 @@ function parse_log(log_table) {
           }
           if (td.length > 0) {
             if (pass_result == 'drop') {
-              first_target = td.text().split('DROPPED by ')[1].split(' ')[0].trim();
+              drp_td = $rows.find('td:contains("DROPPED")');
+              first_target_slug = drp_td.html().match(/DROPPED by (.*)\./)[1];
             } else if (pass_type == 'throw away') {
-              first_target = 'none';
+              first_target_slug = 'none';
             } else if (pass_result == 'catch') {
               td = $rows.find('td:contains("COMPLETE")');
               if (td.text().includes("AMAZING")) {
-                first_target = td.text().split(' by ')[1].split(' ')[0].trim();
+                first_target_slug = td.html().match(/<b>AMAZING<\/b> catch by (.*) on the pass from /)[1];
               } else {
-                first_target = td.text().split(' to ')[1].split(' ')[0].trim();
+                first_target_slug = td.html().match(/ to (.*?), /)[1];
               }
             } else if (pass_result == 'batted pass') {
-              final_target = td.text().split(',to ')[1].split(' ')[0].trim();
+              td = $rows.find('td:contains("... batted down ")');
+              first_target_slug = td.html().match(/,to (.*?)\.\.\. batted down /)[1];
+            } else if (pass_result == 'intercepted') {
+              td = $rows.find('td:contains(" INTERCEPTED by ")');
+              first_target_slug = td.html().match(/ to (.*?), /)[1];
             } else {
-              first_target = td.text().split(' to ')[1].split(' ')[0].trim();
+              td = $rows.find('td:contains(" INCOMPLETE.")');
+              first_target_slug = td.html().match(/ to (.*?), /)[1];
             }
-            final_target = first_target;
+
+            def_td = $rows.find('td:contains(" was the man covering on the play.")');
+            if (def_td.length > 0) {
+              first_defender_slug = def_td.find('i').html().match(/(.*) was the man covering on the play/)[1];
+            } else {
+              first_defender_slug = 'none';
+            }
+
+            final_target_slug = first_target_slug;
+            final_defender_slug = first_defender_slug;
           } else {
             first_read = 'none'; //modifies previous variable for special case
-            first_target = 'none';
-            final_target = 'none';
+
+            first_target_slug = 'none';
+            final_target_slug = 'none';
+            first_defender_slug = 'none';
+            final_defender_slug = 'none';
           }
         }
+
+        first_target = getPositionFromSlug(first_target_slug);
+        first_target_id = getIdFromSlug(first_target_slug);
+        first_defender = getPositionFromSlug(first_defender_slug);
+        first_defender_id = getIdFromSlug(first_defender_slug);
+        final_target = getPositionFromSlug(final_target_slug);
+        final_target_id = getIdFromSlug(final_target_slug);
+        final_defender = getPositionFromSlug(final_defender_slug);
+        final_defender_id = getIdFromSlug(final_defender_slug);
 
         //yardage
         td = $rows.find('td:contains("ard(s)")');
@@ -285,6 +385,7 @@ function parse_log(log_table) {
         yard_line: yard_line,
         off_team: off_team,
         off_package: off_pkg,
+        off_subpackage: off_subpackage,
         off_formation: off_formation,
         off_play: off_play,
         play_type: play_type,
@@ -295,7 +396,9 @@ function parse_log(log_table) {
         roamer_job: roamer_job,
         def_blitzer: def_blitz,
         total_yards: total_yards,
+        passer_id: passer_id,
         runner: runner,
+        runner_id: runner_id,
         hole: hole,
         run_type: run_type,
         pass_type: pass_type,
@@ -303,7 +406,13 @@ function parse_log(log_table) {
         pass_direction: pass_direction,
         first_read: first_read,
         first_target: first_target,
+        first_target_id: first_target_id,
         final_target: final_target,
+        final_target_id: final_target_id,
+        first_defender: first_defender,
+        first_defender_id: first_defender_id,
+        final_defender: final_defender,
+        final_defender_id: final_defender_id,
         pressure_type: pressure_type,
         target_distance: pass_yards,
         yards_after_catch: yac,
@@ -318,6 +427,32 @@ function parse_log(log_table) {
   }
   return game_log;
 
+}
+
+// get the player's current position from the HTML string, if not empty
+function getPositionFromSlug(slug) {
+  var position;
+  if (slug === '') {
+    position = '';
+  } else if (slug === 'none') {
+    position = 'none';
+  } else {
+    position = slug.match('(.*?) <a target=')[1];
+  }
+  return position;
+}
+
+// get the player's ID number from the HTML string, if not empty
+function getIdFromSlug(slug) {
+  var id;
+  if (slug === '') {
+    id = '';
+  } else if (slug === 'none') {
+    id = 'none';
+  } else {
+    id = slug.match('\;lookatplayer=(\.+)&amp\;')[1];
+  }
+  return id;
 }
 
 //helper function to get yardage
