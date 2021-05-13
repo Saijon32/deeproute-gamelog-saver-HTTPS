@@ -63,14 +63,18 @@ function parseLog(log_table,hidden_data) {
       dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
       
-      //use play identifier to get score and timeout data form hidden data
+      //use play identifier to get score and timeout data from hidden data
       play_id_start = 'OFF1' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, ""); //FIXME Adding dist would be more precise, but it will fail on things like 5- since it's actuall 4.xx yards
       play_state = $(hidden_data).find('input[value^=' + play_id_start + ']').eq(0).val();
+      dist_yards = parseInt(play_state.substring(10, 12));
+      dist_inches = parseInt(play_state.substring(12, 14));
       points_away = play_state.substring(14, 16);
       points_home = play_state.substring(16, 18);
       timeouts_away = play_state.substring(26, 27);
       timeouts_home = play_state.substring(27, 28);
       possession = play_state.substring(30, 31);
+
+      dist_decimal = Math.round((dist_yards + dist_inches / 36) * 100) / 100;
 
       //map state data to appropriate team?
       
@@ -391,7 +395,7 @@ function parseLog(log_table,hidden_data) {
         quarter: qtr,
         time: time,
         down: down,
-        distance: dist,
+        distance: dist_decimal,
         yard_line: yard_line,
         points_home: points_home,
         points_away: points_away,
