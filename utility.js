@@ -40,13 +40,65 @@ function parseLog(log_table,hidden_data) {
     }
   }
 
+  // store the name and abbreviation of the home and away teams for easy cross referencing
+  // have_home_away_teams = false;
+  // homeAbbr;
+  // roadAbbr;
+  // homeName;
+  // roadName;
+
   //loop through each section
   for (i = 0; i < $stop_list.length; i++) {
 
     //get list of elements to read
     $rows = $start.nextUntil($stop_list.eq(i));
 
-    //check for valid play
+    //reset variable values for new play
+    off_package = '';
+    off_subpackage = '';
+    off_formation = '';
+    off_play = '';
+    def_package = '';
+    cvr_type = '';
+    cvr_depth = '';
+    roamer_job = '';
+    def_blitz = '';
+    total_yards = '';
+
+    passer_id = '';
+    pass_type = '';
+    pass_result = '';
+    pass_direction = '';
+    first_read = '';
+    first_target = '';
+    first_target_id = '';
+    final_target = '';
+    final_target_id = '';
+    first_defender = '';
+    first_defender_id = '';
+    final_defender = '';
+    final_defender_id = '';
+    //double_defender = '';
+    //area_defender = '';
+    //tackler = '';
+    //pass_deflector = '';
+    pressure_type = '';
+    pass_yards = '';
+    yac = '';
+    runner = '';
+    runner_id = '';
+    hole = '';
+    run_type = '';
+    is_touchdown = 0;
+
+    passer_slug = '';
+    first_target_slug = '';
+    final_target_slug = '';
+    first_defender_slug = '';
+    final_defender_slug = '';
+    runner_slug = '';
+
+    //check for valid non-special teams play
     if ($rows.find('td:contains("- The ball is snapped to")').length == 1) {
 
       //get scenario
@@ -88,40 +140,6 @@ function parseLog(log_table,hidden_data) {
       off_subpackage = full_off_pkg.split('(')[1].split(')')[0].trim();
       off_formation = off[1].split(',')[0].trim();
       off_play = off[2].trim();
-
-      //reset variable values for new play
-      passer_id = '';
-      pass_type = '';
-      pass_result = '';
-      pass_direction = '';
-      first_read = '';
-      first_target = '';
-      first_target_id = '';
-      final_target = '';
-      final_target_id = '';
-      first_defender = '';
-      first_defender_id = '';
-      final_defender = '';
-      final_defender_id = '';
-      //double_defender = '';
-      //area_defender = '';
-      //tackler = '';
-      //pass_deflector = '';
-      pressure_type = '';
-      pass_yards = '';
-      yac = '';
-      runner = '';
-      runner_id = '';
-      hole = '';
-      run_type = '';
-      is_touchdown = 0;
-
-      passer_slug = '';
-      first_target_slug = '';
-      final_target_slug = '';
-      first_defender_slug = '';
-      final_defender_slug = '';
-      runner_slug = '';
 
       // quarterback info
       passer_slug = $rows.find('td:contains("- The ball is snapped to")').html().match(/The ball is snapped to (.*)\./)[1];
