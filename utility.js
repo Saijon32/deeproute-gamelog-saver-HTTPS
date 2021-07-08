@@ -1,12 +1,16 @@
 //main function used to parse the table element containing the game log
-function parseLog(log_table,hidden_data) {
+function parseLog(log_table,hidden_data,logid) {
   var game_log = [];
 
   //format data into searchable jquery object
   $log_data = $(log_table);
 
   $start = $log_data.find('td[colspan="100%"]:eq(0)').parent();
-  $stop_list = $log_data.find('td[bgcolor="#000000"], td[bgcolor="#eeee99"], td:contains("FAILED to convert the 2 Point Conversion")').parent();
+  $stop_list = $log_data.find(
+    'td[bgcolor="#000000"], td[bgcolor="#eeee99"], td:contains("FAILED to convert the 2 Point Conversion")'
+    ).parent();
+
+  // future stoplist items - td:contains(" yards; touchback."), td:contains(" yards; no return.")
 
   //get list of teams playing
   teams = [];
@@ -502,6 +506,27 @@ function getYards(yd_str) {
   a = parseFloat(yd_str.match(/\d+/));
   b = parseFloat(yd_str.match(/\s\d+/));
   return (c * (a + b / 100)).toFixed(2);
+}
+
+// helper function to pull parameter values from a URL
+function getUrlParameter(sPageURL, sParam) {
+  var sURLVariables = sPageURL.split('&');
+  var sParameterName;
+  var i;
+
+  for (i = 0; i < sURLVariables.length; i++) {
+    sParameterName = sURLVariables[i].split('=');
+
+    if (sParameterName[0] === sParam) {
+      if (sParameterName[1] !== undefined) {
+        //console.log("Parameter '"  + sParam + "' = '" + decodeURIComponent(sParameterName[1]) + "'");
+        return decodeURIComponent(sParameterName[1]);
+      } else {
+        throw "Parameter '" + sParam + "' is undefined in URL '" + sPageURL + "'";
+      }
+    }
+  }
+  throw "Parameter '" + sParam + "' not present in URL '" + sPageURL + "'";
 }
 
 //helper function to download files

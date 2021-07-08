@@ -20,6 +20,8 @@ $(document).ready(function () {
             //save href before removing button
             var href = this.href;
 
+            var logid = getUrlParameter(href, "viewpbp");
+
             //change out button to a loading icon
             $(this).find('img:eq(0)').attr('src','https://www.stonebridgehomesnw.com/images/loading.gif');
 
@@ -27,7 +29,8 @@ $(document).ready(function () {
                 //parse data
                 var json_data = parseLog(
                     $(data).find('center'),
-                    $(data).find('#play1').parent()
+                    $(data).find('#play1').parent(),
+                    logid
                 );
 
                 //download data
