@@ -12,6 +12,32 @@ function parseLog(log_table,hidden_data,logid) {
 
   // future stoplist items - td:contains(" yards; touchback."), td:contains(" yards; no return.")
 
+  // parse logid to get league, year, week
+  var league;
+  var year;
+  var type;
+  var week;
+  // (\d{6})(\d{6})(\w)(\d{4})(\d{2})(\d{3})(\d{3})\-(\d+)U1
+  if (logid.match(/(\w+)\-(\d+)U1/) !== null) {
+    league = 0;
+    year = 0;
+    type = "scrim";
+    week = 0;
+  } else {
+    var parsed = logid.match(/(\d{6})(\d{6})(\w)(\d{4})(\d{2})(\d{3})(\d{3})/);
+    league = parseInt(parsed[1]);
+    year = parseInt(parsed[4]);
+    week = parseInt(parsed[5]);
+
+    if (parsed[3] === "X") {
+      type = "pre";
+    } else if (parsed[3] == "P") {
+      type = "post";
+    } else {
+      type = "reg";
+    }
+  }
+
   //get list of teams playing
   teams = [];
   teams.push($log_data.find('td[colspan="100%"]:contains("- Q1"):eq(0)').text().split(' - ')[0].trim());
@@ -414,6 +440,10 @@ function parseLog(log_table,hidden_data,logid) {
 
       //write data
       var play = {
+        league: league,
+        year: year,
+        type: type,
+        week: week,
         quarter: qtr,
         time: time,
         down: down,
