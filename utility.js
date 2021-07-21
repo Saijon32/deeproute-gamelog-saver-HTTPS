@@ -1,12 +1,42 @@
 //main function used to parse the table element containing the game log
-function parseLog(log_table,hidden_data) {
+function parseLog(log_table,hidden_data,logid) {
   var game_log = [];
 
   //format data into searchable jquery object
   $log_data = $(log_table);
 
   $start = $log_data.find('td[colspan="100%"]:eq(0)').parent();
-  $stop_list = $log_data.find('td[bgcolor="#000000"], td[bgcolor="#eeee99"], td:contains("FAILED to convert the 2 Point Conversion")').parent();
+  $stop_list = $log_data.find(
+    'td[bgcolor="#000000"], td[bgcolor="#eeee99"], td:contains("FAILED to convert the 2 Point Conversion")'
+    ).parent();
+
+  // future stoplist items - td:contains(" yards; touchback."), td:contains(" yards; no return.")
+
+  // parse logid to get league, year, week
+  var league;
+  var year;
+  var type;
+  var week;
+  // (\d{6})(\d{6})(\w)(\d{4})(\d{2})(\d{3})(\d{3})\-(\d+)U1
+  if (logid.match(/(\w+)\-(\d+)U1/) !== null) {
+    league = 0;
+    year = 0;
+    type = "scrim";
+    week = 0;
+  } else {
+    var parsed = logid.match(/(\d{6})(\d{6})(\w)(\d{4})(\d{2})(\d{3})(\d{3})/);
+    league = parseInt(parsed[1]);
+    year = parseInt(parsed[4]);
+    week = parseInt(parsed[5]);
+
+    if (parsed[3] === "X") {
+      type = "pre";
+    } else if (parsed[3] == "P") {
+      type = "post";
+    } else {
+      type = "reg";
+    }
+  }
 
   //get list of teams playing
   teams = [];
@@ -40,13 +70,65 @@ function parseLog(log_table,hidden_data) {
     }
   }
 
+  // store the name and abbreviation of the home and away teams for easy cross referencing
+  // have_home_away_teams = false;
+  // homeAbbr;
+  // roadAbbr;
+  // homeName;
+  // roadName;
+
   //loop through each section
   for (i = 0; i < $stop_list.length; i++) {
 
     //get list of elements to read
     $rows = $start.nextUntil($stop_list.eq(i));
 
-    //check for valid play
+    //reset variable values for new play
+    off_package = '';
+    off_subpackage = '';
+    off_formation = '';
+    off_play = '';
+    def_package = '';
+    cvr_type = '';
+    cvr_depth = '';
+    roamer_job = '';
+    def_blitz = '';
+    total_yards = '';
+
+    passer_id = '';
+    pass_type = '';
+    pass_result = '';
+    pass_direction = '';
+    first_read = '';
+    first_target = '';
+    first_target_id = '';
+    final_target = '';
+    final_target_id = '';
+    first_defender = '';
+    first_defender_id = '';
+    final_defender = '';
+    final_defender_id = '';
+    //double_defender = '';
+    //area_defender = '';
+    //tackler = '';
+    //pass_deflector = '';
+    pressure_type = '';
+    pass_yards = '';
+    yac = '';
+    runner = '';
+    runner_id = '';
+    hole = '';
+    run_type = '';
+    is_touchdown = 0;
+
+    passer_slug = '';
+    first_target_slug = '';
+    final_target_slug = '';
+    first_defender_slug = '';
+    final_defender_slug = '';
+    runner_slug = '';
+
+    //check for valid non-special teams play
     if ($rows.find('td:contains("- The ball is snapped to")').length == 1) {
 
       //get scenario
@@ -63,14 +145,18 @@ function parseLog(log_table,hidden_data) {
       dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
       
-      //use play identifier to get score and timeout data form hidden data
+      //use play identifier to get score and timeout data from hidden data
       play_id_start = 'OFF1' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, ""); //FIXME Adding dist would be more precise, but it will fail on things like 5- since it's actuall 4.xx yards
       play_state = $(hidden_data).find('input[value^=' + play_id_start + ']').eq(0).val();
+      dist_yards = parseInt(play_state.substring(10, 12));
+      dist_inches = parseInt(play_state.substring(12, 14));
       points_away = play_state.substring(14, 16);
       points_home = play_state.substring(16, 18);
       timeouts_away = play_state.substring(26, 27);
       timeouts_home = play_state.substring(27, 28);
       possession = play_state.substring(30, 31);
+
+      dist_decimal = Math.round((dist_yards + dist_inches / 36) * 100) / 100;
 
       //map state data to appropriate team?
       
@@ -84,40 +170,6 @@ function parseLog(log_table,hidden_data) {
       off_subpackage = full_off_pkg.split('(')[1].split(')')[0].trim();
       off_formation = off[1].split(',')[0].trim();
       off_play = off[2].trim();
-
-      //reset variable values for new play
-      passer_id = '';
-      pass_type = '';
-      pass_result = '';
-      pass_direction = '';
-      first_read = '';
-      first_target = '';
-      first_target_id = '';
-      final_target = '';
-      final_target_id = '';
-      first_defender = '';
-      first_defender_id = '';
-      final_defender = '';
-      final_defender_id = '';
-      //double_defender = '';
-      //area_defender = '';
-      //tackler = '';
-      //pass_deflector = '';
-      pressure_type = '';
-      pass_yards = '';
-      yac = '';
-      runner = '';
-      runner_id = '';
-      hole = '';
-      run_type = '';
-      is_touchdown = 0;
-
-      passer_slug = '';
-      first_target_slug = '';
-      final_target_slug = '';
-      first_defender_slug = '';
-      final_defender_slug = '';
-      runner_slug = '';
 
       // quarterback info
       passer_slug = $rows.find('td:contains("- The ball is snapped to")').html().match(/The ball is snapped to (.*)\./)[1];
@@ -388,10 +440,14 @@ function parseLog(log_table,hidden_data) {
 
       //write data
       var play = {
+        league: league,
+        year: year,
+        type: type,
+        week: week,
         quarter: qtr,
         time: time,
         down: down,
-        distance: dist,
+        distance: dist_decimal,
         yard_line: yard_line,
         points_home: points_home,
         points_away: points_away,
@@ -480,6 +536,27 @@ function getYards(yd_str) {
   a = parseFloat(yd_str.match(/\d+/));
   b = parseFloat(yd_str.match(/\s\d+/));
   return (c * (a + b / 100)).toFixed(2);
+}
+
+// helper function to pull parameter values from a URL
+function getUrlParameter(sPageURL, sParam) {
+  var sURLVariables = sPageURL.split('&');
+  var sParameterName;
+  var i;
+
+  for (i = 0; i < sURLVariables.length; i++) {
+    sParameterName = sURLVariables[i].split('=');
+
+    if (sParameterName[0] === sParam) {
+      if (sParameterName[1] !== undefined) {
+        //console.log("Parameter '"  + sParam + "' = '" + decodeURIComponent(sParameterName[1]) + "'");
+        return decodeURIComponent(sParameterName[1]);
+      } else {
+        throw "Parameter '" + sParam + "' is undefined in URL '" + sPageURL + "'";
+      }
+    }
+  }
+  throw "Parameter '" + sParam + "' not present in URL '" + sPageURL + "'";
 }
 
 //helper function to download files

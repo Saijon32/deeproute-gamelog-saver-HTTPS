@@ -24,13 +24,16 @@ $(document).ready(function () {
             log_list.each(function () {
                 //TODO need a way to indicate week number in the future
 
+                var logid = getUrlParameter(this.href, "viewpbp");
+
                 //get 
                 $.get(this.href, function (data) {
                     //parse data
                     master_log = master_log.concat(
                         parseLog(
                             $(data).find('center'),
-                            $(data).find('#play1').parent()
+                            $(data).find('#play1').parent(),
+                            logid
                         )
                     );
 
