@@ -312,6 +312,9 @@ function parseLog(log_table,hidden_data,logid) {
           first_target_slug = $rows.find('td:contains("primary option was")').html().match(/primary option was (.*), but he has decided against /)[1];
           first_defender_slug = $rows.find('td:contains(".  Good coverage by ")').html().match(/\.  Good coverage by (.*) on the play\./)[1];
           td = $rows.find('td:contains("Pass by")');
+          if (td.length == 0) {
+            td = $rows.find('td:contains("pass from")');
+          }
           if (td.length > 0) {
             if (td.text().indexOf('DROPPED') > -1) {
               drp_td = $rows.find('td:contains("DROPPED")');
