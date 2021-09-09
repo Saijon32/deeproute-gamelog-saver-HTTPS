@@ -7,10 +7,12 @@ function parseLog(log_table,hidden_data,logid) {
 
   $start = $log_data.find('td[colspan="100%"]:eq(0)').parent();
   $stop_list = $log_data.find(
-    'td[bgcolor="#000000"], td[bgcolor="#eeee99"], td:contains("FAILED to convert the 2 Point Conversion")'
+    'td[bgcolor="#000000"], td[bgcolor="#eeee99"], td:contains("FAILED to convert the 2 Point Conversion"), td[bgcolor="#eeffee"]:contains("Offensive Players :"), td[bgcolor="#eeeeff"]:contains("Offensive Players :")'
     ).parent();
 
-  // future stoplist items - td:contains(" yards; touchback."), td:contains(" yards; no return.")
+  // get an ordered listing of all kickoff plays, to make lookups possible
+  $kickoff_list = $(hidden_data).find('input[value^=KRNW], input[value^=KT], input[value^=KRSQ], input[value^=FK]');
+  kickoff_ptr = 0;
 
   // parse logid to get league, year, week
   var league;
@@ -77,18 +79,37 @@ function parseLog(log_table,hidden_data,logid) {
   // homeName;
   // roadName;
 
+  let is_play = false;
+
   //loop through each section
   for (i = 0; i < $stop_list.length; i++) {
 
     //get list of elements to read
     $rows = $start.nextUntil($stop_list.eq(i));
 
+    if (i === 0) {
+      // opening play was a KRTD, so team abbrs are flipped relative to team names. Reverse them.
+      console.log($rows);
+      if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length > 0) {
+        let oldAbbr1 = teams[0];
+        teams[0] = teams[1];
+        teams[1] = oldAbbr1;
+        console.log(name1 + " = " + teams[0] + ", " + name2 + " = " + teams[1]);
+      }
+    }
+
     //reset variable values for new play
-    off_package = '';
+    qtr = '';
+    time = '';
+    down = '';
+    distance = '';
+    dist_decimal = '';
+
+    off_pkg = '';
     off_subpackage = '';
     off_formation = '';
     off_play = '';
-    def_package = '';
+    def_pkg = '';
     cvr_type = '';
     cvr_depth = '';
     roamer_job = '';
@@ -128,8 +149,17 @@ function parseLog(log_table,hidden_data,logid) {
     final_defender_slug = '';
     runner_slug = '';
 
+    kick_result = '';
+    kick_distance = '';
+    return_yards = '';
+
     //check for valid non-special teams play
     if ($rows.find('td:contains("- The ball is snapped to")').length == 1) {
+      is_play = true;
+
+      if (i < 5) {
+        console.log("found play with i === " + i);
+      }
 
       //get scenario
       snap = $rows.find('td:contains("- The ball is snapped to")').text().split(' - ');
@@ -441,7 +471,85 @@ function parseLog(log_table,hidden_data,logid) {
 
       }
 
-      //write data
+    } else if ($rows.find('td:contains(" is lined up to punt; ")').length == 1) {
+      is_play = true;
+      //console.log("Found a punt!");
+      play_type = "punt";
+
+      if (i < 5) {
+        console.log("found punt with i === " + i);
+      }
+
+      //get scenario
+      snap = $rows.find('td:contains(" is lined up to punt; ")').text().split(' - ');
+
+      // off_team = return team, def_team = kicking team
+      def_team = snap[0].trim();
+      if (def_team == teams[0]) {
+        off_team = teams[1];
+      } else {
+        off_team = teams[0];
+      }
+      qtr = snap[1].split(' ')[0].split('Q')[1].trim();
+      time = snap[1].split(' ')[1].trim();
+      down = snap[1].split('(')[1].split('and')[0].trim();
+      dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
+      yard_line = snap[1].split(';')[1].split(')')[0].trim();
+      console.log("Punt by " + def_team + " to " + off_team + " at Q" + qtr + " " + time);
+    } else if ($rows.find('td:contains("ickoff by ")').length == 1) {
+      is_play = true;
+      //console.log("Found a kickoff!");
+
+      if (i < 5) {
+        console.log("found kickoff with i === " + i);
+      }
+
+      kicking_name = $rows.find('td:contains("ickoff by ")').html().match(/ of the <b>(.*)<\/b>\./)[1];
+      if (kicking_name == name1) {
+        off_team = teams[1];
+        def_team = teams[0];
+      } else if (kicking_name == name2) {
+        off_team = teams[0];
+        def_team = teams[1];
+      } else {
+        console.log("Unrecognized kicking team name: '" + kicking_name + "'");
+      }
+      //console.log(def_team + " kicking to " + off_team + ", i = " + i);
+
+      kickoff_state = $kickoff_list.eq(kickoff_ptr).val();
+      //console.log(kickoff_state);
+      if (kickoff_state.substring(0, 2) == "KT") {
+        // touchback
+        play_type = "kickoff";
+        kick_result = "touchback";
+      } else if (kickoff_state.substring(0, 4) == "KRNW") {
+        // kickoff returned
+        play_type = "kickoff";
+        kick_result = "return";
+      } else if (kickoff_state.substring(0, 4) == "KRSQ") {
+        // squib kickoff (returned)
+        play_type = "squib kickoff";
+        kick_result = "return";
+      } else if (kickoff_state.substring(0, 2) == "FK") {
+        // safety free kick
+        play_type = "free kick";
+        kick_result = "return";
+      }
+      qtr = kickoff_state.substring(4, 5);
+      time = kickoff_state.substring(5, 7) + ":" + kickoff_state.substring(7, 9);
+      console.log("Kickoff by " + def_team + " to " + off_team + ", Q" + qtr + " " + time);
+      points_away = kickoff_state.substring(14, 16);
+      points_home = kickoff_state.substring(16, 18);
+      timeouts_away = kickoff_state.substring(26, 27);
+      timeouts_home = kickoff_state.substring(27, 28);
+      possession = kickoff_state.substring(30, 31);
+      // safe assumption, no penalties in DR affect kickoffs
+      yard_line = "own 35";
+      kickoff_ptr++;
+    }
+
+    // if this part was actually a play, write the data
+    if (is_play) {
       var play = {
         league: league,
         year: year,
@@ -490,14 +598,15 @@ function parseLog(log_table,hidden_data,logid) {
         pressure_type: pressure_type,
         target_distance: pass_yards,
         yards_after_catch: yac,
-        is_touchdown: is_touchdown
+        is_touchdown: is_touchdown,
+        kick_result: kick_result
       };
       game_log.push(play);
-
     }
 
     //update start point
     $start = $stop_list.eq(i);
+    is_play = false;
   }
   return game_log;
 
