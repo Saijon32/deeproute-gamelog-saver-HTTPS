@@ -551,7 +551,7 @@ function parseLog(log_table,hidden_data,logid) {
       }
       
       // safe assumption, no penalties in DR affect kickoffs
-      yard_line = "own 35";
+      yard_line = "Own 35";
       kickoff_ptr++;
     }
 
@@ -606,7 +606,9 @@ function parseLog(log_table,hidden_data,logid) {
         target_distance: pass_yards,
         yards_after_catch: yac,
         is_touchdown: is_touchdown,
-        kick_result: kick_result
+        kick_result: kick_result,
+        kick_distance: kick_distance,
+        return_yards: return_yards
       };
       game_log.push(play);
     }
