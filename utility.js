@@ -152,6 +152,11 @@ function parseLog(log_table,hidden_data,logid) {
     kick_distance = '';
     return_yards = '';
 
+    kicker_slug = '';
+    returner_slug = '';
+    kicker_id = '';
+    returner_id = '';
+
     exec_time = '';
 
     //check for valid non-special teams play
@@ -491,8 +496,10 @@ function parseLog(log_table,hidden_data,logid) {
     } else if ($rows.find('td:contains("ickoff by ")').length == 1) {
       is_play = true;
 
+      kickoff_msg = $rows.find('td:contains("ickoff by ")').html();
+
       // off_team = return team, def_team = kicking team
-      kicking_name = $rows.find('td:contains("ickoff by ")').html().match(/ of the <b>(.*)<\/b>\./)[1];
+      kicking_name = kickoff_msg.match(/ of the <b>(.*)<\/b>\./)[1];
       if (kicking_name == name1) {
         off_team = teams[1];
         def_team = teams[0];
@@ -502,6 +509,9 @@ function parseLog(log_table,hidden_data,logid) {
       } else {
         console.log("Unrecognized kicking team name: '" + kicking_name + "'");
       }
+
+      kicker_slug = kickoff_msg.match(/ickoff by (.*?) of the <b>/)[1];
+      kicker_id = getIdFromSlug(kicker_slug);
 
       kickoff_state = $kickoff_list.eq(kickoff_ptr).val();
       qtr = kickoff_state.substring(4, 5);
@@ -547,6 +557,9 @@ function parseLog(log_table,hidden_data,logid) {
           returned_to = Math.round((returned_to_yards + returned_to_inches / 36) * 100) / 100;
           return_yards = Math.round((returned_to - kick_landing) * 100) / 100;
         }
+
+        returner_slug = $rows.find('td:contains("The ball is returned by ")').html().match(/The ball is returned by (.*?) <span class="supza">/)[1];
+        returner_id = getIdFromSlug(returner_slug);
 
         //console.log("kickoff of " + kick_distance + " yards to the " + kick_landing + " yardline, returned " + return_yards + " yards to the " + returned_to);
       }
@@ -614,7 +627,9 @@ function parseLog(log_table,hidden_data,logid) {
         exec_time: exec_time,
         kick_result: kick_result,
         kick_distance: kick_distance,
-        return_yards: return_yards
+        return_yards: return_yards,
+        kicker_id: kicker_id,
+        returner_id: returner_id
       };
       game_log.push(play);
     }
