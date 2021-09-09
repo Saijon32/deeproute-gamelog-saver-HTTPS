@@ -157,10 +157,6 @@ function parseLog(log_table,hidden_data,logid) {
     if ($rows.find('td:contains("- The ball is snapped to")').length == 1) {
       is_play = true;
 
-      if (i < 5) {
-        console.log("found play with i === " + i);
-      }
-
       //get scenario
       snap = $rows.find('td:contains("- The ball is snapped to")').text().split(' - ');
       off_team = snap[0].trim();
@@ -473,12 +469,7 @@ function parseLog(log_table,hidden_data,logid) {
 
     } else if ($rows.find('td:contains(" is lined up to punt; ")').length == 1) {
       is_play = true;
-      //console.log("Found a punt!");
       play_type = "punt";
-
-      if (i < 5) {
-        console.log("found punt with i === " + i);
-      }
 
       //get scenario
       snap = $rows.find('td:contains(" is lined up to punt; ")').text().split(' - ');
@@ -495,15 +486,11 @@ function parseLog(log_table,hidden_data,logid) {
       down = snap[1].split('(')[1].split('and')[0].trim();
       dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
-      console.log("Punt by " + def_team + " to " + off_team + " at Q" + qtr + " " + time);
+      //console.log("Punt by " + def_team + " to " + off_team + " at Q" + qtr + " " + time);
     } else if ($rows.find('td:contains("ickoff by ")').length == 1) {
       is_play = true;
-      //console.log("Found a kickoff!");
 
-      if (i < 5) {
-        console.log("found kickoff with i === " + i);
-      }
-
+      // off_team = return team, def_team = kicking team
       kicking_name = $rows.find('td:contains("ickoff by ")').html().match(/ of the <b>(.*)<\/b>\./)[1];
       if (kicking_name == name1) {
         off_team = teams[1];
@@ -514,35 +501,55 @@ function parseLog(log_table,hidden_data,logid) {
       } else {
         console.log("Unrecognized kicking team name: '" + kicking_name + "'");
       }
-      //console.log(def_team + " kicking to " + off_team + ", i = " + i);
 
       kickoff_state = $kickoff_list.eq(kickoff_ptr).val();
-      //console.log(kickoff_state);
-      if (kickoff_state.substring(0, 2) == "KT") {
-        // touchback
-        play_type = "kickoff";
-        kick_result = "touchback";
-      } else if (kickoff_state.substring(0, 4) == "KRNW") {
-        // kickoff returned
-        play_type = "kickoff";
-        kick_result = "return";
-      } else if (kickoff_state.substring(0, 4) == "KRSQ") {
-        // squib kickoff (returned)
-        play_type = "squib kickoff";
-        kick_result = "return";
-      } else if (kickoff_state.substring(0, 2) == "FK") {
-        // safety free kick
-        play_type = "free kick";
-        kick_result = "return";
-      }
       qtr = kickoff_state.substring(4, 5);
       time = kickoff_state.substring(5, 7) + ":" + kickoff_state.substring(7, 9);
-      console.log("Kickoff by " + def_team + " to " + off_team + ", Q" + qtr + " " + time);
       points_away = kickoff_state.substring(14, 16);
       points_home = kickoff_state.substring(16, 18);
       timeouts_away = kickoff_state.substring(26, 27);
       timeouts_home = kickoff_state.substring(27, 28);
       possession = kickoff_state.substring(30, 31);
+      //console.log("Kickoff by " + def_team + " to " + off_team + ", Q" + qtr + " " + time);
+
+      if (kickoff_state.substring(0, 2) == "KT") {
+        // touchback
+        play_type = "kickoff";
+        kick_result = "touchback";
+        console.log("Kickoff into the end zone, touchback");
+      } else {
+        if (kickoff_state.substring(0, 4) == "KRNW") {
+          // kickoff returned
+          play_type = "kickoff";
+        } else if (kickoff_state.substring(0, 4) == "KRSQ") {
+          // squib kickoff (returned)
+          play_type = "squib kickoff";
+        } else if (kickoff_state.substring(0, 2) == "FK") {
+          // safety free kick
+          play_type = "free kick";
+        }
+        kick_result = "return";
+
+        kick_landing_yards = parseInt(kickoff_state.substring(22, 24));
+        kick_landing_inches = parseInt(kickoff_state.substring(24, 26));
+        kick_landing = Math.round((kick_landing_yards + kick_landing_inches / 36) * 100) / 100;
+        kick_distance = 65 - kick_landing;
+
+        if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length > 0) {
+          return_yards = 100 - kick_landing;
+          returned_to = 100;
+        } else {
+          return_id_start = 'KRRY' + qtr + time.split(':')[0] + time.split(':')[1] + '110';
+          return_state = $(hidden_data).find('input[value^=' + return_id_start + ']').eq(0).val();
+          returned_to_yards = parseInt(return_state.substring(22, 24));
+          returned_to_inches = parseInt(return_state.substring(24, 26));
+          returned_to = Math.round((returned_to_yards + returned_to_inches / 36) * 100) / 100;
+          return_yards = Math.round((returned_to - kick_landing) * 100) / 100;
+        }
+
+        //console.log("kickoff of " + kick_distance + " yards to the " + kick_landing + " yardline, returned " + return_yards + " yards to the " + returned_to);
+      }
+      
       // safe assumption, no penalties in DR affect kickoffs
       yard_line = "own 35";
       kickoff_ptr++;
