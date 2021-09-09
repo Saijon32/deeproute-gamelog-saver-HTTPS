@@ -89,7 +89,6 @@ function parseLog(log_table,hidden_data,logid) {
 
     if (i === 0) {
       // opening play was a KRTD, so team abbrs are flipped relative to team names. Reverse them.
-      console.log($rows);
       if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length > 0) {
         let oldAbbr1 = teams[0];
         teams[0] = teams[1];
@@ -152,6 +151,8 @@ function parseLog(log_table,hidden_data,logid) {
     kick_result = '';
     kick_distance = '';
     return_yards = '';
+
+    exec_time = '';
 
     //check for valid non-special teams play
     if ($rows.find('td:contains("- The ball is snapped to")').length == 1) {
@@ -516,7 +517,7 @@ function parseLog(log_table,hidden_data,logid) {
         // touchback
         play_type = "kickoff";
         kick_result = "touchback";
-        console.log("Kickoff into the end zone, touchback");
+        //console.log("Kickoff into the end zone, touchback");
       } else {
         if (kickoff_state.substring(0, 4) == "KRNW") {
           // kickoff returned
@@ -557,6 +558,10 @@ function parseLog(log_table,hidden_data,logid) {
 
     // if this part was actually a play, write the data
     if (is_play) {
+      if ($rows.find('td:contains(" seconds to execute.")').length == 1) {
+        exec_time = parseInt($rows.find('td:contains(" seconds to execute.")').html().match(/The play required (\d*) seconds to execute\./)[1]);
+      }
+
       var play = {
         league: league,
         year: year,
@@ -606,6 +611,7 @@ function parseLog(log_table,hidden_data,logid) {
         target_distance: pass_yards,
         yards_after_catch: yac,
         is_touchdown: is_touchdown,
+        exec_time: exec_time,
         kick_result: kick_result,
         kick_distance: kick_distance,
         return_yards: return_yards
