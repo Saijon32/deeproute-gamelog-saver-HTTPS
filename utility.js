@@ -497,15 +497,26 @@ function parseLog(log_table,hidden_data,logid) {
       punt_match = $rows.find('td:contains("Punt by ")').html().match(/Punt by (.+?) for \D*(\d+)\D*\s\D*(\d+)\D* yards(.*)/);
       kicker_id = getIdFromSlug(punt_match[1]);
       kick_distance = Math.round((parseInt(punt_match[2]) + parseInt(punt_match[3]) / 100) * 100) / 100;
+      //console.log("Punter " + kicker_id + " punted " + kick_distance + " yards");
 
       if (punt_match[4] === "; touchback.") {
         kick_result = "touchback";
+        //console.log("Touchback");
       } else if (punt_match[4] === "; no return.") {
         kick_result = "no return";
+        //console.log("No return");
       } else if (punt_match[4] === ".. looks to be returnable.") {
         return_match = $rows.find('td:contains("The punt is returned by ")').html().match(/The punt is returned by (.+?) \D*(\d+)\D*\s\D*(\d+)\D* yards/);
         returner_id = getIdFromSlug(return_match[1]);
         return_yards = Math.round((parseInt(return_match[2]) + parseInt(return_match[3]) / 100) * 100) / 100;
+        //console.log(returner_id + " returns for " + return_yards + " yards");
+      } else if ($rows.find('td:contains(" BLOCKED ")')) {
+        kick_result = "blocked";
+        //console.log("Blocked");
+
+        // TODO: capture blocked kick returns
+      } else {
+        kick_result = "unknown";
       }
     } else if ($rows.find('td:contains("ickoff by ")').length == 1) {
       is_play = true;
