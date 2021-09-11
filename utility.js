@@ -7,11 +7,12 @@ function parseLog(log_table,hidden_data,logid) {
 
   $start = $log_data.find('td[colspan="100%"]:eq(0)').parent();
   $stop_list = $log_data.find(
-    'td[bgcolor="#000000"], td[bgcolor="#eeee99"], td:contains("FAILED to convert the 2 Point Conversion"), td[bgcolor="#eeffee"]:contains("Offensive Players :"), td[bgcolor="#eeeeff"]:contains("Offensive Players :")'
+    'td[bgcolor="#000000"], td[bgcolor="#eeee99"], td[bgcolor="#eeffee"]:contains("FAILED to convert the 2 Point Conversion"), td[bgcolor="#eeeeff"]:contains("FAILED to convert the 2 Point Conversion"), td[bgcolor="#eeffee"]:contains("Offensive Players :"), td[bgcolor="#eeeeff"]:contains("Offensive Players :")'
     ).parent();
 
   // get an ordered listing of all kickoff plays, to make lookups possible
   $kickoff_list = $(hidden_data).find('input[value^=KRNW], input[value^=KT], input[value^=KRSQ], input[value^=FK]');
+  //console.log($kickoff_list);
   kickoff_ptr = 0;
 
   // parse logid to get league, year, week
@@ -84,20 +85,18 @@ function parseLog(log_table,hidden_data,logid) {
   let new_stop = null;
 
   //loop through each section
-  for (i = 1; i < $stop_list.length; i++) {
+  for (i = 0; i < $stop_list.length; i++) {
 
     //get list of elements to read
     $rows = $start.nextUntil($stop_list.eq(i));
 
-    if (i === 1) {
+    if (i === 0) {
       // opening play was a KRTD, so team abbrs are flipped relative to team names. Reverse them.
       if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length == 1) {
-        console.log($stop_list.eq(i));
-        console.log($rows);
         let oldAbbr1 = teams[0];
         teams[0] = teams[1];
         teams[1] = oldAbbr1;
-        console.log(name1 + " = " + teams[0] + ", " + name2 + " = " + teams[1]);
+        //console.log(name1 + " = " + teams[0] + ", " + name2 + " = " + teams[1]);
       }
     }
 
@@ -546,7 +545,9 @@ function parseLog(log_table,hidden_data,logid) {
       kicker_slug = kickoff_msg.match(/ickoff by (.*?) of the <b>/)[1];
       kicker_id = getIdFromSlug(kicker_slug);
 
+      //console.log("kickoff_ptr = " + kickoff_ptr);
       kickoff_state = $kickoff_list.eq(kickoff_ptr).val();
+      //console.log(kickoff_state);
       qtr = kickoff_state.substring(4, 5);
       time = kickoff_state.substring(5, 7) + ":" + kickoff_state.substring(7, 9);
       points_away = kickoff_state.substring(14, 16);
@@ -554,7 +555,7 @@ function parseLog(log_table,hidden_data,logid) {
       timeouts_away = kickoff_state.substring(26, 27);
       timeouts_home = kickoff_state.substring(27, 28);
       possession = kickoff_state.substring(30, 31);
-      console.log("Kickoff by " + def_team + " to " + off_team + ", Q" + qtr + " " + time);
+      //console.log("Kickoff by " + def_team + " to " + off_team + ", Q" + qtr + " " + time);
 
       if (kickoff_state.substring(0, 2) == "KT") {
         // touchback
@@ -592,14 +593,15 @@ function parseLog(log_table,hidden_data,logid) {
           return_yards = Math.round((returned_to - kick_landing) * 100) / 100;
         }
 
+        //console.log("kickoff of " + kick_distance + " yards to the " + kick_landing + " yardline, returned " + return_yards + " yards to the " + returned_to);
+
         returner_slug = $rows.find('td:contains("The ball is returned by ")').html().match(/The ball is returned by (.*?) <span class="supza">/)[1];
         returner_id = getIdFromSlug(returner_slug);
-
-        //console.log("kickoff of " + kick_distance + " yards to the " + kick_landing + " yardline, returned " + return_yards + " yards to the " + returned_to);
       }
       
       // safe assumption, no penalties in DR affect kickoffs
       yard_line = "Own 35";
+      //console.log("kickoff_ptr = " + kickoff_ptr + ", incrementing...");
       kickoff_ptr++;
     } else if ($rows.find('td:contains(" field goal attempt.")').length > 0) {
       is_play = true;
