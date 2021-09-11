@@ -629,7 +629,7 @@ function parseLog(log_table,hidden_data,logid) {
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
       //console.log("Field goal attempt by " + off_team + " against " + def_team + " at Q" + qtr + " " + time);
 
-      if ($rows.find('td:contains(" was BLOCKED ")').length > 0) {
+      if ($rows.find('td:contains(" was BLOCKED ")').length > 0 || $rows.find('td:contains(" was partially BLOCKED!")').length > 0) {
         kick_result = "blocked";
       } else if ($rows.find('td:contains(" away is good!")').length == 1) {
         kick_result = "good";
