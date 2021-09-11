@@ -521,6 +521,9 @@ function parseLog(log_table,hidden_data,logid) {
         }
       } else if ($rows.find('td:contains(" BLOCKED ")').length == 1) {
         kick_result = "blocked";
+        if ($rows.find('td:contains(" BLOCKED backwards for ")').length == 1) {
+          kick_distance = -1 * kick_distance;
+        }
 
         // TODO: capture blocked kick returns
       } else {
