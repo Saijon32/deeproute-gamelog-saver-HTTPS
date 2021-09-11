@@ -511,8 +511,10 @@ function parseLog(log_table,hidden_data,logid) {
         return_match = $rows.find('td:contains("The punt is returned by ")').html().match(/The punt is returned by (.+?) \D*(\d+)\D*\s\D*(\d+)\D* yards/);
         returner_id = getIdFromSlug(return_match[1]);
         return_yards = Math.round((parseInt(return_match[2]) + parseInt(return_match[3]) / 100) * 100) / 100;
-        // TODO: check for touchdowns
         //console.log(returner_id + " returns for " + return_yards + " yards");
+        if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length == 1) {
+          is_touchdown = 1;
+        }
       } else if ($rows.find('td:contains(" BLOCKED ")')) {
         kick_result = "blocked";
         //console.log("Blocked");
