@@ -84,14 +84,16 @@ function parseLog(log_table,hidden_data,logid) {
   let new_stop = null;
 
   //loop through each section
-  for (i = 0; i < $stop_list.length; i++) {
+  for (i = 1; i < $stop_list.length; i++) {
 
     //get list of elements to read
     $rows = $start.nextUntil($stop_list.eq(i));
 
-    if (i === 0) {
+    if (i === 1) {
       // opening play was a KRTD, so team abbrs are flipped relative to team names. Reverse them.
-      if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length > 0) {
+      if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length == 1) {
+        console.log($stop_list.eq(i));
+        console.log($rows);
         let oldAbbr1 = teams[0];
         teams[0] = teams[1];
         teams[1] = oldAbbr1;
@@ -552,7 +554,7 @@ function parseLog(log_table,hidden_data,logid) {
       timeouts_away = kickoff_state.substring(26, 27);
       timeouts_home = kickoff_state.substring(27, 28);
       possession = kickoff_state.substring(30, 31);
-      //console.log("Kickoff by " + def_team + " to " + off_team + ", Q" + qtr + " " + time);
+      console.log("Kickoff by " + def_team + " to " + off_team + ", Q" + qtr + " " + time);
 
       if (kickoff_state.substring(0, 2) == "KT") {
         // touchback
