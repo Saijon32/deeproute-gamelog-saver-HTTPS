@@ -80,6 +80,8 @@ function parseLog(log_table,hidden_data,logid) {
   // roadName;
 
   let is_play = false;
+  let has_new_stop = false;
+  let new_stop = null;
 
   //loop through each section
   for (i = 0; i < $stop_list.length; i++) {
@@ -509,6 +511,7 @@ function parseLog(log_table,hidden_data,logid) {
         return_match = $rows.find('td:contains("The punt is returned by ")').html().match(/The punt is returned by (.+?) \D*(\d+)\D*\s\D*(\d+)\D* yards/);
         returner_id = getIdFromSlug(return_match[1]);
         return_yards = Math.round((parseInt(return_match[2]) + parseInt(return_match[3]) / 100) * 100) / 100;
+        // TODO: check for touchdowns
         //console.log(returner_id + " returns for " + return_yards + " yards");
       } else if ($rows.find('td:contains(" BLOCKED ")')) {
         kick_result = "blocked";
@@ -516,6 +519,7 @@ function parseLog(log_table,hidden_data,logid) {
 
         // TODO: capture blocked kick returns
       } else {
+        // this will probably capture partial blocks
         kick_result = "unknown";
       }
     } else if ($rows.find('td:contains("ickoff by ")').length == 1) {
@@ -574,6 +578,7 @@ function parseLog(log_table,hidden_data,logid) {
         if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length > 0) {
           return_yards = 100 - kick_landing;
           returned_to = 100;
+          is_touchdown = 1;
         } else {
           return_id_start = 'KRRY' + qtr + time.split(':')[0] + time.split(':')[1] + '110';
           return_state = $(hidden_data).find('input[value^=' + return_id_start + ']').eq(0).val();
@@ -592,6 +597,47 @@ function parseLog(log_table,hidden_data,logid) {
       // safe assumption, no penalties in DR affect kickoffs
       yard_line = "Own 35";
       kickoff_ptr++;
+    } else if ($rows.find('td:contains(" field goal attempt.")').length > 0) {
+      is_play = true;
+      play_type = "field goal";
+
+      fg_rows = $rows.find('td:contains(" field goal attempt.")');
+      snap = fg_rows.text().split(' - ');
+
+      if (fg_rows.length > 1) {
+        has_new_stop = true;
+        index = $rows.index(fg_rows.eq(1).parent())
+        new_stop = $rows.eq(index-1);
+      }
+
+      off_team = snap[0].trim();
+      if (off_team == teams[0]) {
+        def_team = teams[1];
+      } else {
+        def_team = teams[0];
+      }
+      qtr = snap[1].split(' ')[0].split('Q')[1].trim();
+      time = snap[1].split(' ')[1].trim();
+      down = snap[1].split('(')[1].split('and')[0].trim();
+      dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
+      yard_line = snap[1].split(';')[1].split(')')[0].trim();
+      //console.log("Field goal attempt by " + off_team + " against " + def_team + " at Q" + qtr + " " + time);
+
+      if ($rows.find('td:contains(" was BLOCKED ")').length > 0) {
+        kick_result = "blocked";
+      } else if ($rows.find('td:contains(" away is good!")').length == 1) {
+        kick_result = "good";
+      } else if ($rows.find('td:contains(" away is no good!")').length == 1) {
+        kick_result = "no good";
+      } else {
+        // this will probably capture partial blocks
+        kick_result = "unknown";
+      }
+
+      fg_match = $rows.find('td:contains(" field goal attempt.")').html().match(/ - (.+?) is coming on for a \D*(\d+)\D*\s\D*(\d+)\D* field goal attempt\./);
+      kicker_id = getIdFromSlug(fg_match[1]);
+      kick_distance = Math.round((parseInt(fg_match[2]) + parseInt(fg_match[3]) / 100) * 100) / 100;
+      //console.log(kick_distance + " yard field goal attempt by " + kicker_id + " is " + kick_result);
     }
 
     // if this part was actually a play, write the data
@@ -660,7 +706,15 @@ function parseLog(log_table,hidden_data,logid) {
     }
 
     //update start point
-    $start = $stop_list.eq(i);
+    if (!has_new_stop) {
+      $start = $stop_list.eq(i);
+    } else {
+      // really hacky way of inserting something new into the middle of $stop_list
+      // necessary for handling edge cases like a blocked FG imediately followed by another FG attempt
+      $start = new_stop;
+      has_new_stop = false;
+      i--;
+    }
     is_play = false;
   }
   return game_log;
