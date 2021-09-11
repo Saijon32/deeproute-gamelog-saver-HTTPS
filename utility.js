@@ -504,11 +504,10 @@ function parseLog(log_table,hidden_data,logid) {
 
       if (punt_match[4] === "; touchback.") {
         kick_result = "touchback";
-        //console.log("Touchback");
       } else if (punt_match[4] === "; no return.") {
         kick_result = "no return";
-        //console.log("No return");
-      } else if (punt_match[4] === ".. looks to be returnable.") {
+      } else if (punt_match[4] === ".. looks to be returnable." || punt_match[4] === ".. not the best decision to return this by the return man...") {
+        kick_result = "return";
         return_match = $rows.find('td:contains("The punt is returned by ")').html().match(/The punt is returned by (.+?) \D*(\d+)\D*\s\D*(\d+)\D* yards/);
         returner_id = getIdFromSlug(return_match[1]);
         return_yards = Math.round((parseInt(return_match[2]) + parseInt(return_match[3]) / 100) * 100) / 100;
@@ -516,9 +515,8 @@ function parseLog(log_table,hidden_data,logid) {
         if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length == 1) {
           is_touchdown = 1;
         }
-      } else if ($rows.find('td:contains(" BLOCKED ")')) {
+      } else if ($rows.find('td:contains(" BLOCKED ")').length == 1) {
         kick_result = "blocked";
-        //console.log("Blocked");
 
         // TODO: capture blocked kick returns
       } else {
