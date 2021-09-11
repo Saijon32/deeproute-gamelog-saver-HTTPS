@@ -101,6 +101,11 @@ function parseLog(log_table,hidden_data,logid) {
     }
 
     //reset variable values for new play
+    off_team = '';
+    def_team = '';
+    kick_team = '';
+    rec_team = '';
+
     qtr = '';
     time = '';
     down = '';
@@ -483,19 +488,18 @@ function parseLog(log_table,hidden_data,logid) {
       //get scenario
       snap = $rows.find('td:contains(" is lined up to punt; ")').text().split(' - ');
 
-      // off_team = return team, def_team = kicking team
-      def_team = snap[0].trim();
-      if (def_team == teams[0]) {
-        off_team = teams[1];
+      kick_team = snap[0].trim();
+      if (kick_team == teams[0]) {
+        rec_team = teams[1];
       } else {
-        off_team = teams[0];
+        rec_team = teams[0];
       }
       qtr = snap[1].split(' ')[0].split('Q')[1].trim();
       time = snap[1].split(' ')[1].trim();
       down = snap[1].split('(')[1].split('and')[0].trim();
       dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
-      //console.log("Punt by " + def_team + " to " + off_team + " at Q" + qtr + " " + time);
+      //console.log("Punt by " + kick_team + " to " + rec_team + " at Q" + qtr + " " + time);
 
       punt_match = $rows.find('td:contains("Punt by ")').html().match(/Punt by (.+?) for \D*(\d+)\D*\s\D*(\d+)\D* yards(.*)/);
       kicker_id = getIdFromSlug(punt_match[1]);
@@ -528,14 +532,13 @@ function parseLog(log_table,hidden_data,logid) {
 
       kickoff_msg = $rows.find('td:contains("ickoff by ")').html();
 
-      // off_team = return team, def_team = kicking team
       kicking_name = kickoff_msg.match(/ of the <b>(.*)<\/b>\./)[1];
       if (kicking_name == name1) {
-        off_team = teams[1];
-        def_team = teams[0];
+        rec_team = teams[1];
+        kick_team = teams[0];
       } else if (kicking_name == name2) {
-        off_team = teams[0];
-        def_team = teams[1];
+        rec_team = teams[0];
+        kick_team = teams[1];
       } else {
         console.log("Unrecognized kicking team name: '" + kicking_name + "'");
       }
@@ -700,6 +703,8 @@ function parseLog(log_table,hidden_data,logid) {
         yards_after_catch: yac,
         is_touchdown: is_touchdown,
         exec_time: exec_time,
+        kick_team: kick_team,
+        rec_team: rec_team,
         kick_result: kick_result,
         kick_distance: kick_distance,
         return_yards: return_yards,
