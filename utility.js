@@ -122,6 +122,7 @@ function parseLog(log_table,hidden_data,logid) {
     roamer_job = '';
     def_blitz = '';
     total_yards = '';
+    play_result = '';
 
     passer_id = '';
     pass_type = '';
@@ -147,6 +148,7 @@ function parseLog(log_table,hidden_data,logid) {
     runner_id = '';
     hole = '';
     run_type = '';
+    fumble_recovery_id = '';
     is_touchdown = 0;
 
     passer_slug = '';
@@ -235,6 +237,23 @@ function parseLog(log_table,hidden_data,logid) {
       // check for offensive touchdowns
       if ($rows.find('td:contains("Touchdown")').length > 0) {
         is_touchdown = 1;
+        play_result = "offensive touchdown";
+      }
+
+      // check for fumbles
+      if ($rows.find('td:contains("FUMBLE! Recovered by ")').length > 0) {
+        fumble_match = $rows.find('td:contains("FUMBLE! Recovered by ")').html().match(/FUMBLE! Recovered by (.*) of <b>(.*)<\/b>!/);
+        fumble_recovery_id = getIdFromSlug(fumble_match[1]);
+        fumble_recovery_team_name = fumble_match[2];
+        let recovery_team_num = 1;
+        if (fumble_recovery_team_name == name1) {
+          recovery_team_num = 0;
+        }
+        if (teams[recovery_team_num] == off_team) {
+          play_result = "fumble recovered";
+        } else {
+          play_result = "fumble lost";
+        }
       }
 
       //check for run vs pass
@@ -518,6 +537,7 @@ function parseLog(log_table,hidden_data,logid) {
         //console.log(returner_id + " returns for " + return_yards + " yards");
         if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length == 1) {
           is_touchdown = 1;
+          play_result = "return touchdown";
         }
       } else if ($rows.find('td:contains(" BLOCKED ")').length == 1) {
         kick_result = "blocked";
@@ -588,6 +608,7 @@ function parseLog(log_table,hidden_data,logid) {
           return_yards = 100 - kick_landing;
           returned_to = 100;
           is_touchdown = 1;
+          play_result = "return touchdown";
         } else {
           return_id_start = 'KRRY' + qtr + time.split(':')[0] + time.split(':')[1] + '110';
           return_state = $(hidden_data).find('input[value^=' + return_id_start + ']').eq(0).val();
@@ -650,6 +671,9 @@ function parseLog(log_table,hidden_data,logid) {
       //console.log(kick_distance + " yard field goal attempt by " + kicker_id + " is " + kick_result);
     }
 
+    // check for safety here by looking ahead one "stop"
+    // to improve efficiency, only check on plays which lose yards, blocked punts, recovered fumbles, and accepted penalties
+
     // if this part was actually a play, write the data
     if (is_play) {
       if ($rows.find('td:contains(" seconds to execute.")').length == 1) {
@@ -684,6 +708,7 @@ function parseLog(log_table,hidden_data,logid) {
         roamer_job: roamer_job,
         def_blitzer: def_blitz,
         total_yards: total_yards,
+        play_result: play_result,
         passer_id: passer_id,
         runner: runner,
         runner_id: runner_id,
