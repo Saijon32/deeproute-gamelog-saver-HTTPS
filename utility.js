@@ -160,6 +160,7 @@ function parseLog(log_table,hidden_data,logid) {
     kick_result = '';
     kick_distance = '';
     return_yards = '';
+    return_result = '';
 
     kicker_slug = '';
     returner_slug = '';
@@ -235,7 +236,7 @@ function parseLog(log_table,hidden_data,logid) {
 
       // check for offensive touchdowns
       if ($rows.find('td:contains("Touchdown")').length > 0) {
-        play_result = "offensive touchdown";
+        play_result = "touchdown";
       }
 
       // check for fumbles
@@ -534,7 +535,7 @@ function parseLog(log_table,hidden_data,logid) {
         return_yards = Math.round((parseInt(return_match[2]) + parseInt(return_match[3]) / 100) * 100) / 100;
         //console.log(returner_id + " returns for " + return_yards + " yards");
         if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length == 1) {
-          play_result = "return touchdown";
+          return_result = "touchdown";
         }
       } else if ($rows.find('td:contains(" BLOCKED ")').length == 1) {
         kick_result = "blocked";
@@ -604,7 +605,7 @@ function parseLog(log_table,hidden_data,logid) {
         if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length > 0) {
           return_yards = 100 - kick_landing;
           returned_to = 100;
-          play_result = "return touchdown";
+          return_result = "touchdown";
         } else {
           return_id_start = 'KRRY' + qtr + time.split(':')[0] + time.split(':')[1] + '110';
           return_state = $(hidden_data).find('input[value^=' + return_id_start + ']').eq(0).val();
@@ -731,6 +732,7 @@ function parseLog(log_table,hidden_data,logid) {
         kick_result: kick_result,
         kick_distance: kick_distance,
         return_yards: return_yards,
+        return_result: return_result,
         kicker_id: kicker_id,
         returner_id: returner_id
       };
