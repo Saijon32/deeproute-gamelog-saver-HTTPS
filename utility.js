@@ -272,6 +272,15 @@ function parseLog(log_table,hidden_data,logid) {
         }
       }
 
+      // check for tackles
+      /*if ($rows.find('td:contains(" before being tackled by ")').length > 0) {
+
+      } else if ($rows.find('td:contains(" before being ridden out of bounds by ")').length > 0) {
+
+      } else if ($rows.find('td:contains(" is eventually ridden out of bounds by ")').length > 0) {
+        
+      }*/
+
       //check for run vs pass
       if ($rows.find('td:contains("Handoff")').length > 0 || $rows.find('td:contains(" handoff ")').length > 0 || $rows.find('td:contains("keeps it")').length > 0) {
         play_type = 'run';
