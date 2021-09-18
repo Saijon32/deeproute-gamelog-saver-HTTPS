@@ -351,6 +351,24 @@ function parseLog(log_table,hidden_data,logid) {
         } else if ($rows.find('td:contains("INTERCEPTED")').length > 0) {
           pass_result = 'intercepted';
           pass_disruptor_slug = $rows.find('td:contains("INTERCEPTED")').html().match(/yard\(s\) downfield, INTERCEPTED by (.*)!/)[1];
+
+          // "look ahead" to see interception return results
+          $next_rows = $stop_list.eq(i).nextUntil($stop_list.eq(i+1));
+          if ($next_rows.find('td:contains("The interception return time took ")').length > 0) {
+            if ($next_rows.find('td:contains("The defensive player is stopped immediately\.")').length > 0) {
+              return_yards = 0;
+              if ($next_rows.find('td:contains("The interception took place in the endzone\.")').length > 0) {
+                return_result = "touchback";
+              }
+            } else if ($next_rows.find('td:contains("The interception was returned ")').length > 0) {
+              if ($next_rows.find('td:contains(" for a TOUCHDOWN!")').length > 0) {
+                return_yards = parseInt($next_rows.find('td:contains("The interception was returned ")').html().match(/The interception was returned (\d*) for a TOUCHDOWN!/)[1]);
+                return_result = "touchdown";
+              } else {
+                return_yards = parseInt($next_rows.find('td:contains("The interception was returned ")').html().match(/The interception was returned (\d*) yards\./)[1]);
+              }
+            }
+          }
         } else if ($rows.find('td:contains("INCOMPLETE")').length > 0) {
           pass_result = 'miss';
         } else if ($rows.find('td:contains("COMPLETE")').length > 0) {
