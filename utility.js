@@ -283,7 +283,6 @@ function parseLog(log_table,hidden_data,logid) {
 
       //check for post-play penalties, then "look ahead" for penalties committed during the play
       if ($rows.find('td:contains("Hold up.. there\'s a flag thrown at the end of that play... here\'s the call...")').length > 0) {
-        console.log("flag after Q" + qtr + " " + time);
         penalty_msg = $rows.find('td:contains(" yard penalty")').html().match(/(.*), (.*) on the (\w+)\. \D*(\d+)\D*\s\D*(\d+)\D* yard penalty/);
         penalty = penalty_msg[1];
         penalized_slug = penalty_msg[2];
@@ -301,8 +300,6 @@ function parseLog(log_table,hidden_data,logid) {
       } else {
         $next_rows = $stop_list.eq(i).nextUntil($stop_list.eq(i+1));
         if ($next_rows.find('td:contains("Hold up.. there\'s a flag on the previous play... here\'s the call...")').length > 0) {
-          console.log("flag after Q" + qtr + " " + time);
-          //console.log($next_rows);
           if ($next_rows.find('td:contains("Defensive Pass Interference on ")').length > 0) {
             penalty_msg = $next_rows.find('td:contains(" yard penalty")').html().match(/(.*) on (.*)\.\. a \D*(\d+)\D*\s\D*(\d+)\D* yard penalty/);
             penalty = penalty_msg[1];
