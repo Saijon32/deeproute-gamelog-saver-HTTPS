@@ -140,7 +140,8 @@ function parseLog(log_table,hidden_data,logid) {
     //double_defender = '';
     //area_defender = '';
     //tackler = '';
-    //pass_deflector = '';
+    pass_disruptor = '';
+    pass_disruptor_id = '';
     pressure_type = '';
     pass_yards = '';
     yac = '';
@@ -155,6 +156,7 @@ function parseLog(log_table,hidden_data,logid) {
     final_target_slug = '';
     first_defender_slug = '';
     final_defender_slug = '';
+    pass_disruptor_slug = '';
     runner_slug = '';
 
     kick_result = '';
@@ -239,7 +241,7 @@ function parseLog(log_table,hidden_data,logid) {
         play_result = "touchdown";
       }
 
-      // check for fumbles FUMBLE! Recovered by 
+      // check for fumbles 
       if ($rows.find('td:contains("FUMBLE!  Recovered by")').length > 0) {
         fumble_match = $rows.find('td:contains("FUMBLE!  Recovered by ")').html().match(/FUMBLE!  Recovered by (.*) of <b>(.*)<\/b>!/);
         fumble_recovery_id = getIdFromSlug(fumble_match[1]);
@@ -342,10 +344,13 @@ function parseLog(log_table,hidden_data,logid) {
           pass_result = 'drop';
         } else if ($rows.find('td:contains("pass defended")').length > 0) {
           pass_result = 'pass defended';
+          pass_disruptor_slug = $rows.find('td:contains("pass defended")').html().match(/, INCOMPLETE\.\. credit (.*) with a pass defended\./)[1];
         } else if ($rows.find('td:contains("batted down")').length > 0) {
           pass_result = 'batted pass';
+          pass_disruptor_slug = $rows.find('td:contains("batted down")').html().match(/\.\.\. batted down by (.*)\.\.\. incomplete\./)[1];
         } else if ($rows.find('td:contains("INTERCEPTED")').length > 0) {
           pass_result = 'intercepted';
+          pass_disruptor_slug = $rows.find('td:contains("INTERCEPTED")').html().match(/yard\(s\) downfield, INTERCEPTED by (.*)!/)[1];
         } else if ($rows.find('td:contains("INCOMPLETE")').length > 0) {
           pass_result = 'miss';
         } else if ($rows.find('td:contains("COMPLETE")').length > 0) {
@@ -479,6 +484,8 @@ function parseLog(log_table,hidden_data,logid) {
         final_target_id = getIdFromSlug(final_target_slug);
         final_defender = getPositionFromSlug(final_defender_slug);
         final_defender_id = getIdFromSlug(final_defender_slug);
+        pass_disruptor = getPositionFromSlug(pass_disruptor_slug);
+        pass_disruptor_id = getIdFromSlug(pass_disruptor_slug);
 
         //yardage
         td = $rows.find('td:contains("ard(s)")');
@@ -738,6 +745,8 @@ function parseLog(log_table,hidden_data,logid) {
         first_defender_id: first_defender_id,
         final_defender: final_defender,
         final_defender_id: final_defender_id,
+        pass_disruptor: pass_disruptor,
+        pass_disruptor_id: pass_disruptor_id,
         fumble_recovery_id: fumble_recovery_id,
         pressure_type: pressure_type,
         target_distance: pass_yards,
