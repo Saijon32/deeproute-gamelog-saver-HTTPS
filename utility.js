@@ -541,6 +541,19 @@ function parseLog(log_table,hidden_data,logid) {
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
       //console.log("Punt by " + kick_team + " to " + rec_team + " at Q" + qtr + " " + time);
 
+      //use play identifier to get score and timeout data from hidden data
+      play_id_start = 'PUTL' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, "");
+      play_state = $(hidden_data).find('input[value^=' + play_id_start + ']').eq(0).val();
+      dist_yards = parseInt(play_state.substring(10, 12));
+      dist_inches = parseInt(play_state.substring(12, 14));
+      points_away = play_state.substring(14, 16);
+      points_home = play_state.substring(16, 18);
+      timeouts_away = play_state.substring(26, 27);
+      timeouts_home = play_state.substring(27, 28);
+      possession = play_state.substring(30, 31);
+
+      dist_decimal = Math.round((dist_yards + dist_inches / 36) * 100) / 100;
+
       punt_match = $rows.find('td:contains("Punt by ")').html().match(/Punt by (.+?) for \D*(\d+)\D*\s\D*(\d+)\D* yards(.*)/);
       kicker_id = getIdFromSlug(punt_match[1]);
       kick_distance = Math.round((parseInt(punt_match[2]) + parseInt(punt_match[3]) / 100) * 100) / 100;
@@ -680,6 +693,19 @@ function parseLog(log_table,hidden_data,logid) {
       dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
       //console.log("Field goal attempt by " + off_team + " against " + def_team + " at Q" + qtr + " " + time);
+
+      //use play identifier to get score and timeout data from hidden data
+      play_id_start = 'FGOA' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, "");
+      play_state = $(hidden_data).find('input[value^=' + play_id_start + ']').eq(0).val();
+      dist_yards = parseInt(play_state.substring(10, 12));
+      dist_inches = parseInt(play_state.substring(12, 14));
+      points_away = play_state.substring(14, 16);
+      points_home = play_state.substring(16, 18);
+      timeouts_away = play_state.substring(26, 27);
+      timeouts_home = play_state.substring(27, 28);
+      possession = play_state.substring(30, 31);
+
+      dist_decimal = Math.round((dist_yards + dist_inches / 36) * 100) / 100;
 
       if ($rows.find('td:contains(" was BLOCKED ")').length > 0 || $rows.find('td:contains(" was partially BLOCKED!")').length > 0) {
         kick_result = "blocked";
