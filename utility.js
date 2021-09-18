@@ -239,9 +239,9 @@ function parseLog(log_table,hidden_data,logid) {
         play_result = "touchdown";
       }
 
-      // check for fumbles
-      if ($rows.find('td:contains("FUMBLE! Recovered by ")').length > 0) {
-        fumble_match = $rows.find('td:contains("FUMBLE! Recovered by ")').html().match(/FUMBLE! Recovered by (.*) of <b>(.*)<\/b>!/);
+      // check for fumbles FUMBLE! Recovered by 
+      if ($rows.find('td:contains("FUMBLE!  Recovered by")').length > 0) {
+        fumble_match = $rows.find('td:contains("FUMBLE!  Recovered by ")').html().match(/FUMBLE!  Recovered by (.*) of <b>(.*)<\/b>!/);
         fumble_recovery_id = getIdFromSlug(fumble_match[1]);
         fumble_recovery_team_name = fumble_match[2];
         let recovery_team_num = 1;
@@ -252,6 +252,21 @@ function parseLog(log_table,hidden_data,logid) {
           play_result = "fumble recovered";
         } else {
           play_result = "fumble lost";
+
+          // "look ahead" to see fumble return results
+          $next_rows = $stop_list.eq(i).nextUntil($stop_list.eq(i+1));
+          if ($next_rows.find('td:contains("The fumble recovery and return time took ")').length > 0) {
+            if ($next_rows.find('td:contains("The defensive player falls on the ball.")').length > 0) {
+              return_yards = 0;
+            } else if ($next_rows.find('td:contains("The fumble was returned ")').length > 0) {
+              if ($next_rows.find('td:contains(" for a TOUCHDOWN!")').length > 0) {
+                return_yards = parseInt($next_rows.find('td:contains("The fumble was returned ")').html().match(/The fumble was returned (\d*) for a TOUCHDOWN!/)[1]);
+                return_result = "touchdown";
+              } else {
+                return_yards = parseInt($next_rows.find('td:contains("The fumble was returned ")').html().match(/The fumble was returned (\d*) yards\./)[1]);
+              }
+            }
+          }
         }
       }
 
@@ -723,6 +738,7 @@ function parseLog(log_table,hidden_data,logid) {
         first_defender_id: first_defender_id,
         final_defender: final_defender,
         final_defender_id: final_defender_id,
+        fumble_recovery_id: fumble_recovery_id,
         pressure_type: pressure_type,
         target_distance: pass_yards,
         yards_after_catch: yac,
