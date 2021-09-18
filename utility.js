@@ -7,10 +7,13 @@ function parseLog(log_table,hidden_data,logid) {
 
   $start = $log_data.find('td[colspan="100%"]:eq(0)').parent();
   $stop_list = $log_data.find(
-    'td[bgcolor="#000000"], td[bgcolor="#eeee99"], td:contains("FAILED to convert the 2 Point Conversion")'
+    'td[bgcolor="#000000"], td[bgcolor="#eeee99"], td[bgcolor="#eeffee"]:contains("FAILED to convert the 2 Point Conversion"), td[bgcolor="#eeeeff"]:contains("FAILED to convert the 2 Point Conversion"), td[bgcolor="#eeffee"]:contains("Offensive Players :"), td[bgcolor="#eeeeff"]:contains("Offensive Players :")'
     ).parent();
 
-  // future stoplist items - td:contains(" yards; touchback."), td:contains(" yards; no return.")
+  // get an ordered listing of all kickoff plays, to make lookups possible
+  $kickoff_list = $(hidden_data).find('input[value^=KRNW], input[value^=KT], input[value^=KRSQ], input[value^=FK]');
+  //console.log($kickoff_list);
+  kickoff_ptr = 0;
 
   // parse logid to get league, year, week
   var league;
@@ -77,23 +80,49 @@ function parseLog(log_table,hidden_data,logid) {
   // homeName;
   // roadName;
 
+  let is_play = false;
+  let has_new_stop = false;
+  let new_stop = null;
+
   //loop through each section
   for (i = 0; i < $stop_list.length; i++) {
 
     //get list of elements to read
     $rows = $start.nextUntil($stop_list.eq(i));
 
+    if (i === 0) {
+      // opening play was a KRTD, so team abbrs are flipped relative to team names. Reverse them.
+      if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length == 1) {
+        let oldAbbr1 = teams[0];
+        teams[0] = teams[1];
+        teams[1] = oldAbbr1;
+        //console.log(name1 + " = " + teams[0] + ", " + name2 + " = " + teams[1]);
+      }
+    }
+
     //reset variable values for new play
-    off_package = '';
+    off_team = '';
+    def_team = '';
+    kick_team = '';
+    rec_team = '';
+
+    qtr = '';
+    time = '';
+    down = '';
+    distance = '';
+    dist_decimal = '';
+
+    off_pkg = '';
     off_subpackage = '';
     off_formation = '';
     off_play = '';
-    def_package = '';
+    def_pkg = '';
     cvr_type = '';
     cvr_depth = '';
     roamer_job = '';
     def_blitz = '';
     total_yards = '';
+    play_result = '';
 
     passer_id = '';
     pass_type = '';
@@ -111,7 +140,8 @@ function parseLog(log_table,hidden_data,logid) {
     //double_defender = '';
     //area_defender = '';
     //tackler = '';
-    //pass_deflector = '';
+    pass_disruptor = '';
+    pass_disruptor_id = '';
     pressure_type = '';
     pass_yards = '';
     yac = '';
@@ -119,17 +149,40 @@ function parseLog(log_table,hidden_data,logid) {
     runner_id = '';
     hole = '';
     run_type = '';
-    is_touchdown = 0;
+    fumble_recovery_id = '';
 
     passer_slug = '';
     first_target_slug = '';
     final_target_slug = '';
     first_defender_slug = '';
     final_defender_slug = '';
+    pass_disruptor_slug = '';
     runner_slug = '';
+
+    penalty = '';
+    penalty_type = '';
+    penalty_yards = '';
+    penalty_result = '';
+    penalized_pos = '';
+    penalized_id = '';
+    penalized_slug = '';
+    penalized_team = '';
+
+    kick_result = '';
+    kick_distance = '';
+    return_yards = '';
+    return_result = '';
+
+    kicker_slug = '';
+    returner_slug = '';
+    kicker_id = '';
+    returner_id = '';
+
+    exec_time = '';
 
     //check for valid non-special teams play
     if ($rows.find('td:contains("- The ball is snapped to")').length == 1) {
+      is_play = true;
 
       //get scenario
       snap = $rows.find('td:contains("- The ball is snapped to")').text().split(' - ');
@@ -194,8 +247,134 @@ function parseLog(log_table,hidden_data,logid) {
 
       // check for offensive touchdowns
       if ($rows.find('td:contains("Touchdown")').length > 0) {
-        is_touchdown = 1;
+        play_result = "touchdown";
       }
+
+      // check for fumbles 
+      if ($rows.find('td:contains("FUMBLE!  Recovered by")').length > 0) {
+        fumble_match = $rows.find('td:contains("FUMBLE!  Recovered by ")').html().match(/FUMBLE!  Recovered by (.*) of <b>(.*)<\/b>!/);
+        fumble_recovery_id = getIdFromSlug(fumble_match[1]);
+        fumble_recovery_team_name = fumble_match[2];
+        let recovery_team_num = 1;
+        if (fumble_recovery_team_name == name1) {
+          recovery_team_num = 0;
+        }
+        if (teams[recovery_team_num] == off_team) {
+          play_result = "fumble recovered";
+        } else {
+          play_result = "fumble lost";
+
+          // "look ahead" to see fumble return results
+          $next_rows = $stop_list.eq(i).nextUntil($stop_list.eq(i+1));
+          if ($next_rows.find('td:contains("The fumble recovery and return time took ")').length > 0) {
+            if ($next_rows.find('td:contains("The defensive player falls on the ball.")').length > 0) {
+              return_yards = 0;
+            } else if ($next_rows.find('td:contains("The fumble was returned ")').length > 0) {
+              if ($next_rows.find('td:contains(" for a TOUCHDOWN!")').length > 0) {
+                return_yards = parseInt($next_rows.find('td:contains("The fumble was returned ")').html().match(/The fumble was returned (\d*) for a TOUCHDOWN!/)[1]);
+                return_result = "touchdown";
+              } else {
+                return_yards = parseInt($next_rows.find('td:contains("The fumble was returned ")').html().match(/The fumble was returned (\d*) yards\./)[1]);
+              }
+            }
+          }
+        }
+      }
+
+      //check for post-play penalties, then "look ahead" for penalties committed during the play
+      if ($rows.find('td:contains("Hold up.. there\'s a flag thrown at the end of that play... here\'s the call...")').length > 0) {
+        console.log("flag after Q" + qtr + " " + time);
+        penalty_msg = $rows.find('td:contains(" yard penalty")').html().match(/(.*), (.*) on the (\w+)\. \D*(\d+)\D*\s\D*(\d+)\D* yard penalty/);
+        penalty = penalty_msg[1];
+        penalized_slug = penalty_msg[2];
+        penalized_side = penalty_msg[3];
+        penalty_yards = Math.round((parseInt(penalty_msg[4]) + parseInt(penalty_msg[5]) / 100) * 100) / 100;
+
+        if (penalized_side.toUpperCase() === "OFFENSE") {
+          penalized_team = "off";
+        } else {
+          penalized_team = "def";
+          penalty_result = "first down";
+        }
+
+        penalty_type = "after play";
+      } else {
+        $next_rows = $stop_list.eq(i).nextUntil($stop_list.eq(i+1));
+        if ($next_rows.find('td:contains("Hold up.. there\'s a flag on the previous play... here\'s the call...")').length > 0) {
+          console.log("flag after Q" + qtr + " " + time);
+          //console.log($next_rows);
+          if ($next_rows.find('td:contains("Defensive Pass Interference on ")').length > 0) {
+            penalty_msg = $next_rows.find('td:contains(" yard penalty")').html().match(/(.*) on (.*)\.\. a \D*(\d+)\D*\s\D*(\d+)\D* yard penalty/);
+            penalty = penalty_msg[1];
+            penalized_slug = penalty_msg[2];
+            penalty_yards = Math.round((parseInt(penalty_msg[3]) + parseInt(penalty_msg[4]) / 100) * 100) / 100;
+            penalty_result = "first down";
+
+            penalized_team = "def";
+
+            if ($rows.find('td:contains("Penalty <b>declined</b> by the ")').length > 0) {
+              penalty_type = "declined";
+            } else {
+              penalty_type = "accepted";
+            }
+          } else if ($next_rows.find('td:contains("Intentional Grounding on ")').length > 0) {
+            penalty_msg = $next_rows.find('td:contains("Intentional Grounding on ")').html().match(/(.*) on (.*) - mark off \D*(\d+)\D*\s\D*(\d+)\D* and a loss of down\./);
+            penalty = penalty_msg[1];
+            penalized_slug = penalty_msg[2];
+            penalty_yards = Math.round((parseInt(penalty_msg[3]) + parseInt(penalty_msg[4]) / 100) * 100) / 100;
+            penalty_result = "loss of down";
+
+            penalized_team = "off";
+
+            if ($rows.find('td:contains("Penalty <b>declined</b> by the ")').length > 0) {
+              penalty_type = "declined";
+            } else {
+              penalty_type = "accepted";
+            }
+          } else {
+            penalty_msg = $next_rows.find('td:contains(" yard penalty")').html().match(/(.*), (.*) on the (\w+)\.+\s*[a]* \D*(\d+)\D*\s\D*(\d+)\D* yard penalty/);
+            penalty = penalty_msg[1];
+            penalized_slug = penalty_msg[2];
+            penalized_side = penalty_msg[3];
+            penalty_yards = Math.round((parseInt(penalty_msg[4]) + parseInt(penalty_msg[5]) / 100) * 100) / 100;
+
+            if (penalized_side.toUpperCase() === "OFFENSE") {
+              penalized_team = "off";
+            } else {
+              penalized_team = "def";
+            }
+
+            if ($rows.find('td:contains("Penalty <b>declined</b> by the ")').length > 0) {
+              penalty_type = "declined";
+            } else {
+              penalty_type = "accepted";
+
+              if (penalized_team == "off") {
+                if ($next_rows.find('td:contains("The penalty occurred in the endzone and would thus cause a safety.")').length > 0) {
+                  penalty_result = "safety";
+                } else {
+                  penalty_result = "replay down";
+                }
+              } else {
+                if ($next_rows.find('td:contains("utomatic first down")').length > 0) {
+                  penalty_result = "first down";
+                } else {
+                  penalty_result = "replay down";
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // check for tackles
+      /*if ($rows.find('td:contains(" before being tackled by ")').length > 0) {
+
+      } else if ($rows.find('td:contains(" before being ridden out of bounds by ")').length > 0) {
+
+      } else if ($rows.find('td:contains(" is eventually ridden out of bounds by ")').length > 0) {
+        
+      }*/
 
       //check for run vs pass
       if ($rows.find('td:contains("Handoff")').length > 0 || $rows.find('td:contains(" handoff ")').length > 0 || $rows.find('td:contains("keeps it")').length > 0) {
@@ -269,10 +448,31 @@ function parseLog(log_table,hidden_data,logid) {
           pass_result = 'drop';
         } else if ($rows.find('td:contains("pass defended")').length > 0) {
           pass_result = 'pass defended';
+          pass_disruptor_slug = $rows.find('td:contains("pass defended")').html().match(/, INCOMPLETE\.\. credit (.*) with a pass defended\./)[1];
         } else if ($rows.find('td:contains("batted down")').length > 0) {
           pass_result = 'batted pass';
+          pass_disruptor_slug = $rows.find('td:contains("batted down")').html().match(/\.\.\. batted down by (.*)\.\.\. incomplete\./)[1];
         } else if ($rows.find('td:contains("INTERCEPTED")').length > 0) {
           pass_result = 'intercepted';
+          pass_disruptor_slug = $rows.find('td:contains("INTERCEPTED")').html().match(/yard\(s\) downfield, INTERCEPTED by (.*)!/)[1];
+
+          // "look ahead" to see interception return results
+          $next_rows = $stop_list.eq(i).nextUntil($stop_list.eq(i+1));
+          if ($next_rows.find('td:contains("The interception return time took ")').length > 0) {
+            if ($next_rows.find('td:contains("The defensive player is stopped immediately\.")').length > 0) {
+              return_yards = 0;
+              if ($next_rows.find('td:contains("The interception took place in the endzone\.")').length > 0) {
+                return_result = "touchback";
+              }
+            } else if ($next_rows.find('td:contains("The interception was returned ")').length > 0) {
+              if ($next_rows.find('td:contains(" for a TOUCHDOWN!")').length > 0) {
+                return_yards = parseInt($next_rows.find('td:contains("The interception was returned ")').html().match(/The interception was returned (\d*) for a TOUCHDOWN!/)[1]);
+                return_result = "touchdown";
+              } else {
+                return_yards = parseInt($next_rows.find('td:contains("The interception was returned ")').html().match(/The interception was returned (\d*) yards\./)[1]);
+              }
+            }
+          }
         } else if ($rows.find('td:contains("INCOMPLETE")').length > 0) {
           pass_result = 'miss';
         } else if ($rows.find('td:contains("COMPLETE")').length > 0) {
@@ -406,6 +606,8 @@ function parseLog(log_table,hidden_data,logid) {
         final_target_id = getIdFromSlug(final_target_slug);
         final_defender = getPositionFromSlug(final_defender_slug);
         final_defender_id = getIdFromSlug(final_defender_slug);
+        pass_disruptor = getPositionFromSlug(pass_disruptor_slug);
+        pass_disruptor_id = getIdFromSlug(pass_disruptor_slug);
 
         //yardage
         td = $rows.find('td:contains("ard(s)")');
@@ -441,7 +643,285 @@ function parseLog(log_table,hidden_data,logid) {
 
       }
 
-      //write data
+    } else if ($rows.find('td:contains(" is lined up to punt; ")').length == 1) {
+      is_play = true;
+      play_type = "punt";
+
+      //get scenario
+      snap = $rows.find('td:contains(" is lined up to punt; ")').text().split(' - ');
+
+      kick_team = snap[0].trim();
+      if (kick_team == teams[0]) {
+        rec_team = teams[1];
+      } else {
+        rec_team = teams[0];
+      }
+      qtr = snap[1].split(' ')[0].split('Q')[1].trim();
+      time = snap[1].split(' ')[1].trim();
+      down = snap[1].split('(')[1].split('and')[0].trim();
+      dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
+      yard_line = snap[1].split(';')[1].split(')')[0].trim();
+      //console.log("Punt by " + kick_team + " to " + rec_team + " at Q" + qtr + " " + time);
+
+      //use play identifier to get score and timeout data from hidden data
+      play_id_start = 'PUTL' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, "");
+      play_state = $(hidden_data).find('input[value^=' + play_id_start + ']').eq(0).val();
+      dist_yards = parseInt(play_state.substring(10, 12));
+      dist_inches = parseInt(play_state.substring(12, 14));
+      points_away = play_state.substring(14, 16);
+      points_home = play_state.substring(16, 18);
+      timeouts_away = play_state.substring(26, 27);
+      timeouts_home = play_state.substring(27, 28);
+      possession = play_state.substring(30, 31);
+
+      dist_decimal = Math.round((dist_yards + dist_inches / 36) * 100) / 100;
+
+      punt_match = $rows.find('td:contains("Punt by ")').html().match(/Punt by (.+?) for \D*(\d+)\D*\s\D*(\d+)\D* yards(.*)/);
+      kicker_id = getIdFromSlug(punt_match[1]);
+      kick_distance = Math.round((parseInt(punt_match[2]) + parseInt(punt_match[3]) / 100) * 100) / 100;
+      //console.log("Punter " + kicker_id + " punted " + kick_distance + " yards");
+
+      if (punt_match[4] === "; touchback.") {
+        kick_result = "touchback";
+      } else if (punt_match[4] === "; no return.") {
+        kick_result = "no return";
+      } else if (punt_match[4] === ".. looks to be returnable." || punt_match[4] === ".. not the best decision to return this by the return man...") {
+        kick_result = "return";
+        return_match = $rows.find('td:contains("The punt is returned by ")').html().match(/The punt is returned by (.+?) \D*(\d+)\D*\s\D*(\d+)\D* yards/);
+        returner_id = getIdFromSlug(return_match[1]);
+        return_yards = Math.round((parseInt(return_match[2]) + parseInt(return_match[3]) / 100) * 100) / 100;
+        //console.log(returner_id + " returns for " + return_yards + " yards");
+        if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length == 1) {
+          return_result = "touchdown";
+        }
+      } else if ($rows.find('td:contains(" BLOCKED ")').length == 1) {
+        kick_result = "blocked";
+        if ($rows.find('td:contains(" BLOCKED backwards for ")').length == 1) {
+          kick_distance = -1 * kick_distance;
+        }
+
+        if ($rows.find('td:contains("The blocked punt was returned ")').length > 0) {
+          if ($rows.find('td:contains(" for a TOUCHDOWN!")').length > 0) {
+            return_yards = parseInt($rows.find('td:contains("The blocked punt was returned ")').html().match(/The blocked punt was returned (\d*) for a TOUCHDOWN!/)[1]);
+            return_result = "touchdown";
+          } else {
+            return_yards = parseInt($rows.find('td:contains("The blocked punt was returned ")').html().match(/The blocked punt was returned (\d*) yards\./)[1]);
+          }
+        } else if ($rows.find('td:contains("The defensive player falls on the ball.")').length > 0) {
+          return_yards = 0;
+        }
+      } else {
+        kick_result = "unknown";
+      }
+    } else if ($rows.find('td:contains("ickoff by ")').length == 1) {
+      is_play = true;
+
+      kickoff_msg = $rows.find('td:contains("ickoff by ")').html();
+
+      kicking_name = kickoff_msg.match(/ of the <b>(.*)<\/b>\./)[1];
+      if (kicking_name == name1) {
+        rec_team = teams[1];
+        kick_team = teams[0];
+      } else if (kicking_name == name2) {
+        rec_team = teams[0];
+        kick_team = teams[1];
+      } else {
+        console.log("Unrecognized kicking team name: '" + kicking_name + "'");
+      }
+
+      kicker_slug = kickoff_msg.match(/ickoff by (.*?) of the <b>/)[1];
+      kicker_id = getIdFromSlug(kicker_slug);
+
+      //console.log("kickoff_ptr = " + kickoff_ptr);
+      kickoff_state = $kickoff_list.eq(kickoff_ptr).val();
+      //console.log(kickoff_state);
+      qtr = kickoff_state.substring(4, 5);
+      time = kickoff_state.substring(5, 7) + ":" + kickoff_state.substring(7, 9);
+      points_away = kickoff_state.substring(14, 16);
+      points_home = kickoff_state.substring(16, 18);
+      timeouts_away = kickoff_state.substring(26, 27);
+      timeouts_home = kickoff_state.substring(27, 28);
+      possession = kickoff_state.substring(30, 31);
+      //console.log("Kickoff by " + def_team + " to " + off_team + ", Q" + qtr + " " + time);
+
+      if (kickoff_state.substring(0, 2) == "KT") {
+        // touchback
+        play_type = "kickoff";
+        kick_result = "touchback";
+        //console.log("Kickoff into the end zone, touchback");
+      } else {
+        if (kickoff_state.substring(0, 4) == "KRNW") {
+          // kickoff returned
+          play_type = "kickoff";
+        } else if (kickoff_state.substring(0, 4) == "KRSQ") {
+          // squib kickoff (returned)
+          play_type = "squib kickoff";
+        } else if (kickoff_state.substring(0, 2) == "FK") {
+          // safety free kick
+          play_type = "free kick";
+        }
+        kick_result = "return";
+
+        kick_landing_yards = parseInt(kickoff_state.substring(22, 24));
+        kick_landing_inches = parseInt(kickoff_state.substring(24, 26));
+        kick_landing = Math.round((kick_landing_yards + kick_landing_inches / 36) * 100) / 100;
+        kick_distance = 65 - kick_landing;
+
+        if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length > 0) {
+          return_yards = 100 - kick_landing;
+          returned_to = 100;
+          return_result = "touchdown";
+        } else {
+          return_id_start = 'KRRY' + qtr + time.split(':')[0] + time.split(':')[1] + '110';
+          return_state = $(hidden_data).find('input[value^=' + return_id_start + ']').eq(0).val();
+          returned_to_yards = parseInt(return_state.substring(22, 24));
+          returned_to_inches = parseInt(return_state.substring(24, 26));
+          returned_to = Math.round((returned_to_yards + returned_to_inches / 36) * 100) / 100;
+          return_yards = Math.round((returned_to - kick_landing) * 100) / 100;
+        }
+
+        //console.log("kickoff of " + kick_distance + " yards to the " + kick_landing + " yardline, returned " + return_yards + " yards to the " + returned_to);
+
+        returner_slug = $rows.find('td:contains("The ball is returned by ")').html().match(/The ball is returned by (.*?) <span class="supza">/)[1];
+        returner_id = getIdFromSlug(returner_slug);
+      }
+      
+      // safe assumption, no penalties in DR affect kickoffs
+      yard_line = "Own 35";
+      //console.log("kickoff_ptr = " + kickoff_ptr + ", incrementing...");
+      kickoff_ptr++;
+    } else if ($rows.find('td:contains(" field goal attempt.")').length > 0) {
+      is_play = true;
+      play_type = "field goal";
+
+      fg_rows = $rows.find('td:contains(" field goal attempt.")');
+      snap = fg_rows.text().split(' - ');
+
+      if (fg_rows.length > 1) {
+        has_new_stop = true;
+        index = $rows.index(fg_rows.eq(1).parent())
+        new_stop = $rows.eq(index-1);
+      }
+
+      off_team = snap[0].trim();
+      if (off_team == teams[0]) {
+        def_team = teams[1];
+      } else {
+        def_team = teams[0];
+      }
+      qtr = snap[1].split(' ')[0].split('Q')[1].trim();
+      time = snap[1].split(' ')[1].trim();
+      down = snap[1].split('(')[1].split('and')[0].trim();
+      dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
+      yard_line = snap[1].split(';')[1].split(')')[0].trim();
+      //console.log("Field goal attempt by " + off_team + " against " + def_team + " at Q" + qtr + " " + time);
+
+      //use play identifier to get score and timeout data from hidden data
+      play_id_start = 'FGOA' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, "");
+      play_state = $(hidden_data).find('input[value^=' + play_id_start + ']').eq(0).val();
+      dist_yards = parseInt(play_state.substring(10, 12));
+      dist_inches = parseInt(play_state.substring(12, 14));
+      points_away = play_state.substring(14, 16);
+      points_home = play_state.substring(16, 18);
+      timeouts_away = play_state.substring(26, 27);
+      timeouts_home = play_state.substring(27, 28);
+      possession = play_state.substring(30, 31);
+
+      dist_decimal = Math.round((dist_yards + dist_inches / 36) * 100) / 100;
+
+      if ($rows.find('td:contains(" was BLOCKED ")').length > 0) {
+        kick_result = "blocked";
+
+        // get blocked kick returns
+        if ($rows.find('td:contains(" and recovered by the defense.")').length > 0) {
+          if ($rows.find('td:contains("The defensive player falls on the ball.")').length > 0) {
+            return_yards = 0;
+          } else {
+            if ($rows.find('td:contains("The blocked field goal was returned ")').length > 0) {
+              if ($rows.find('td:contains(" for a TOUCHDOWN!")').length > 0) {
+                return_yards = parseInt($rows.find('td:contains("The blocked field goal was returned ")').html().match(/The blocked field goal was returned (\d*) for a TOUCHDOWN!/)[1]);
+                return_result = "touchdown";
+              } else {
+                return_yards = parseInt($rows.find('td:contains("The blocked field goal was returned ")').html().match(/The blocked field goal was returned (\d*) yards\./)[1]);
+              }
+            }
+          }
+        }
+      } else if ($rows.find('td:contains(" was partially BLOCKED!")').length > 0) {  
+        kick_result = "blocked";
+      } else if ($rows.find('td:contains(" away is good!")').length == 1) {
+        kick_result = "good";
+      } else if ($rows.find('td:contains(" away is no good!")').length == 1) {
+        kick_result = "no good";
+      } else {
+        kick_result = "unknown";
+      }
+
+      fg_match = $rows.find('td:contains(" field goal attempt.")').html().match(/ - (.+?) is coming on for a \D*(\d+)\D*\s\D*(\d+)\D* field goal attempt\./);
+      kicker_id = getIdFromSlug(fg_match[1]);
+      // this is the kick ATTEMPT distance. The distance a blocked kick actually travels is not recorded. 
+      // TODO: make better?
+      kick_distance = Math.round((parseInt(fg_match[2]) + parseInt(fg_match[3]) / 100) * 100) / 100;
+      //console.log(kick_distance + " yard field goal attempt by " + kicker_id + " is " + kick_result);
+    } else if (penalty === '' && $rows.find('td:contains(" Penalty flag thrown prior to the snap...")').length > 0) {
+      is_play = true;
+      play_type = "none";
+
+      //get scenario
+      snap = $rows.find('td:contains(" Penalty flag thrown prior to the snap...")').text().split(' - ');
+
+      off_team = snap[0].trim();
+      if (off_team == teams[0]) {
+        def_team = teams[1];
+      } else {
+        def_team = teams[0];
+      }
+      qtr = snap[1].split(' ')[0].split('Q')[1].trim();
+      time = snap[1].split(' ')[1].trim();
+      down = snap[1].split('(')[1].split('and')[0].trim();
+      dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
+      yard_line = snap[1].split(';')[1].split(')')[0].trim();
+
+      //use play identifier to get score and timeout data from hidden data
+      play_id_start = 'PZ00' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, "");
+      play_state = $(hidden_data).find('input[value^=' + play_id_start + ']').eq(0).val();
+      dist_yards = parseInt(play_state.substring(10, 12));
+      dist_inches = parseInt(play_state.substring(12, 14));
+      points_away = play_state.substring(14, 16);
+      points_home = play_state.substring(16, 18);
+      timeouts_away = play_state.substring(26, 27);
+      timeouts_home = play_state.substring(27, 28);
+      possession = play_state.substring(30, 31);
+
+      dist_decimal = Math.round((dist_yards + dist_inches / 36) * 100) / 100;
+
+      penalty_msg = $rows.find('td:contains(" yard penalty.")').html().match(/(.*)\. (.*) on the ([A-Z]+)\. \D*(\d+)\D*\s\D*(\d+)\D* yard penalty\./);
+      penalty = penalty_msg[1];
+      penalized_slug = penalty_msg[2];
+      penalized_side = penalty_msg[3];
+      penalty_yards = Math.round((parseInt(penalty_msg[4]) + parseInt(penalty_msg[5]) / 100) * 100) / 100;
+
+      if (penalized_side.toUpperCase() === "OFFENSE") {
+        penalized_team = "off";
+      } else {
+        penalized_team = "def";
+      }
+
+      penalty_type = "before play";
+    }
+
+    penalized_pos = getPositionFromSlug(penalized_slug);
+    penalized_id = getIdFromSlug(penalized_slug);
+
+    // check for safety here by looking ahead one "stop"
+    // to improve efficiency, only check on plays which lose yards, blocked punts, recovered fumbles, and accepted penalties
+
+    // if this part was actually a play, write the data
+    if (is_play) {
+      if ($rows.find('td:contains(" seconds to execute.")').length == 1) {
+        exec_time = parseInt($rows.find('td:contains(" seconds to execute.")').html().match(/The play required (\d*) seconds to execute\./)[1]);
+      }
+
       var play = {
         league: league,
         year: year,
@@ -470,6 +950,7 @@ function parseLog(log_table,hidden_data,logid) {
         roamer_job: roamer_job,
         def_blitzer: def_blitz,
         total_yards: total_yards,
+        play_result: play_result,
         passer_id: passer_id,
         runner: runner,
         runner_id: runner_id,
@@ -487,17 +968,43 @@ function parseLog(log_table,hidden_data,logid) {
         first_defender_id: first_defender_id,
         final_defender: final_defender,
         final_defender_id: final_defender_id,
+        pass_disruptor: pass_disruptor,
+        pass_disruptor_id: pass_disruptor_id,
+        fumble_recovery_id: fumble_recovery_id,
         pressure_type: pressure_type,
         target_distance: pass_yards,
         yards_after_catch: yac,
-        is_touchdown: is_touchdown
+        exec_time: exec_time,
+        kick_team: kick_team,
+        rec_team: rec_team,
+        kick_result: kick_result,
+        kick_distance: kick_distance,
+        return_yards: return_yards,
+        return_result: return_result,
+        kicker_id: kicker_id,
+        returner_id: returner_id,
+        penalty: penalty,
+        penalty_type: penalty_type,
+        penalty_yards: penalty_yards,
+        penalty_result: penalty_result,
+        penalized_team: penalized_team,
+        penalized_pos: penalized_pos,
+        penalized_id: penalized_id
       };
       game_log.push(play);
-
     }
 
     //update start point
-    $start = $stop_list.eq(i);
+    if (!has_new_stop) {
+      $start = $stop_list.eq(i);
+    } else {
+      // really hacky way of inserting something new into the middle of $stop_list
+      // necessary for handling edge cases like a blocked FG imediately followed by another FG attempt
+      $start = new_stop;
+      has_new_stop = false;
+      i--;
+    }
+    is_play = false;
   }
   return game_log;
 
