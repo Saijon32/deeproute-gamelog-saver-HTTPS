@@ -707,21 +707,38 @@ function parseLog(log_table,hidden_data,logid) {
 
       dist_decimal = Math.round((dist_yards + dist_inches / 36) * 100) / 100;
 
-      if ($rows.find('td:contains(" was BLOCKED ")').length > 0 || $rows.find('td:contains(" was partially BLOCKED!")').length > 0) {
+      if ($rows.find('td:contains(" was BLOCKED ")').length > 0) {
         kick_result = "blocked";
 
         // get blocked kick returns
+        if ($rows.find('td:contains(" and recovered by the defense.")').length > 0) {
+          if ($rows.find('td:contains("The defensive player falls on the ball.")').length > 0) {
+            return_yards = 0;
+          } else {
+            if ($rows.find('td:contains("The blocked field goal was returned ")').length > 0) {
+              if ($rows.find('td:contains(" for a TOUCHDOWN!")').length > 0) {
+                return_yards = parseInt($rows.find('td:contains("The blocked field goal was returned ")').html().match(/The blocked field goal was returned (\d*) for a TOUCHDOWN!/)[1]);
+                return_result = "touchdown";
+              } else {
+                return_yards = parseInt($rows.find('td:contains("The blocked field goal was returned ")').html().match(/The blocked field goal was returned (\d*) yards\./)[1]);
+              }
+            }
+          }
+        }
+      } else if ($rows.find('td:contains(" was partially BLOCKED!")').length > 0) {  
+        kick_result = "blocked";
       } else if ($rows.find('td:contains(" away is good!")').length == 1) {
         kick_result = "good";
       } else if ($rows.find('td:contains(" away is no good!")').length == 1) {
         kick_result = "no good";
       } else {
-        // this will probably capture partial blocks
         kick_result = "unknown";
       }
 
       fg_match = $rows.find('td:contains(" field goal attempt.")').html().match(/ - (.+?) is coming on for a \D*(\d+)\D*\s\D*(\d+)\D* field goal attempt\./);
       kicker_id = getIdFromSlug(fg_match[1]);
+      // this is the kick ATTEMPT distance. The distance a blocked kick actually travels is not recorded. 
+      // TODO: make better?
       kick_distance = Math.round((parseInt(fg_match[2]) + parseInt(fg_match[3]) / 100) * 100) / 100;
       //console.log(kick_distance + " yard field goal attempt by " + kicker_id + " is " + kick_result);
     }
