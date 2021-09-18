@@ -565,9 +565,17 @@ function parseLog(log_table,hidden_data,logid) {
           kick_distance = -1 * kick_distance;
         }
 
-        // TODO: capture blocked kick returns
+        if ($rows.find('td:contains("The blocked punt was returned ")').length > 0) {
+          if ($rows.find('td:contains(" for a TOUCHDOWN!")').length > 0) {
+            return_yards = parseInt($rows.find('td:contains("The blocked punt was returned ")').html().match(/The blocked punt was returned (\d*) for a TOUCHDOWN!/)[1]);
+            return_result = "touchdown";
+          } else {
+            return_yards = parseInt($rows.find('td:contains("The blocked punt was returned ")').html().match(/The blocked punt was returned (\d*) yards\./)[1]);
+          }
+        } else if ($rows.find('td:contains("The defensive player falls on the ball.")').length > 0) {
+          return_yards = 0;
+        }
       } else {
-        // this will probably capture partial blocks
         kick_result = "unknown";
       }
     } else if ($rows.find('td:contains("ickoff by ")').length == 1) {
@@ -675,6 +683,8 @@ function parseLog(log_table,hidden_data,logid) {
 
       if ($rows.find('td:contains(" was BLOCKED ")').length > 0 || $rows.find('td:contains(" was partially BLOCKED!")').length > 0) {
         kick_result = "blocked";
+
+        // get blocked kick returns
       } else if ($rows.find('td:contains(" away is good!")').length == 1) {
         kick_result = "good";
       } else if ($rows.find('td:contains(" away is no good!")').length == 1) {
