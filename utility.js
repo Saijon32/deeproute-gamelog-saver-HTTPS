@@ -387,6 +387,12 @@ function parseLog(log_table,hidden_data,logid) {
         }
       }
 
+      // "look ahead" to check if there was a non-penalty safety on this play
+      $next_rows = $stop_list.eq(i).nextUntil($stop_list.eq(i+1));
+      if ($next_rows.find('td:contains("Safety on ")').length > 0) {
+        play_result = "safety";
+      }
+
       // check for tackles
       /*if ($rows.find('td:contains(" before being tackled by ")').length > 0) {
 
@@ -730,6 +736,8 @@ function parseLog(log_table,hidden_data,logid) {
           }
         } else if ($rows.find('td:contains("The defensive player falls on the ball.")').length > 0) {
           return_yards = 0;
+        } else if ($rows.find('td:contains(" SAFETY!")').length > 0) {
+          play_result = "safety";
         }
       } else {
         kick_result = "unknown";
@@ -885,7 +893,6 @@ function parseLog(log_table,hidden_data,logid) {
       kick_distance = Math.round((parseInt(fg_match[2]) + parseInt(fg_match[3]) / 100) * 100) / 100;
       //console.log(kick_distance + " yard field goal attempt by " + kicker_id + " is " + kick_result);
     } else if ($rows.find('td:contains(" Penalty flag thrown prior to the snap...")').length > 0) {
-      console.log($rows);
       is_play = true;
       play_type = "none";
 
@@ -903,8 +910,6 @@ function parseLog(log_table,hidden_data,logid) {
       down = snap[1].split('(')[1].split('and')[0].trim();
       dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
-
-      console.log("presnap penalty at Q" + qtr + " " + time);
 
       //use play identifier to get score and timeout data from hidden data
       play_id_start = 'PZ00' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, "");
