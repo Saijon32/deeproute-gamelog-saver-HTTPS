@@ -82,6 +82,7 @@ function parseLog(log_table,hidden_data,logid) {
 
   let is_play = false;
   let has_new_stop = false;
+  let in_lookahead = false;
   let new_stop = null;
 
   //loop through each section
@@ -328,6 +329,19 @@ function parseLog(log_table,hidden_data,logid) {
             } else {
               penalty_type = "accepted";
             }
+          } else if ($next_rows.find('td:contains("Illegal formation on the offense. ")').length > 0) {
+            penalty_msg = $next_rows.find('td:contains("Illegal formation on the offense. ")').html().match(/(.*) on the offense\. \D*(\d+)\D*\s\D*(\d+)\D* yard penalty\./);
+            penalty = penalty_msg[1];
+            penalty_yards = Math.round((parseInt(penalty_msg[2]) + parseInt(penalty_msg[3]) / 100) * 100) / 100;
+            penalty_result = "replay down";
+
+            penalized_team = "off";
+
+            if ($rows.find('td:contains("Penalty <b>declined</b> by the ")').length > 0) {
+              penalty_type = "declined";
+            } else {
+              penalty_type = "accepted";
+            }
           } else {
             penalty_msg = $next_rows.find('td:contains(" yard penalty")').html().match(/(.*), (.*) on the (\w+)\.+\s*[a]* \D*(\d+)\D*\s\D*(\d+)\D* yard penalty/);
             penalty = penalty_msg[1];
@@ -360,6 +374,15 @@ function parseLog(log_table,hidden_data,logid) {
                 }
               }
             }
+          }
+          // this penalty is followed by a presnap penalty, which won't be separated by a stoplist item
+          // thus, we need to insert one
+          if ($next_rows.find('td:contains(" Penalty flag thrown prior to the snap...")').length > 0) {
+            presnap_pen = $next_rows.find('td:contains(" Penalty flag thrown prior to the snap...")');
+            has_new_stop = true;
+            in_lookahead = true;
+            index = $next_rows.index(presnap_pen.eq(0).parent());
+            new_stop = $next_rows.eq(index-1);
           }
         }
       }
@@ -452,6 +475,7 @@ function parseLog(log_table,hidden_data,logid) {
         } else if ($rows.find('td:contains("INTERCEPTED")').length > 0) {
           pass_result = 'intercepted';
           pass_disruptor_slug = $rows.find('td:contains("INTERCEPTED")').html().match(/yard\(s\) downfield, INTERCEPTED by (.*)!/)[1];
+          play_result = "interception";
 
           // "look ahead" to see interception return results
           $next_rows = $stop_list.eq(i).nextUntil($stop_list.eq(i+1));
@@ -860,7 +884,8 @@ function parseLog(log_table,hidden_data,logid) {
       // TODO: make better?
       kick_distance = Math.round((parseInt(fg_match[2]) + parseInt(fg_match[3]) / 100) * 100) / 100;
       //console.log(kick_distance + " yard field goal attempt by " + kicker_id + " is " + kick_result);
-    } else if (penalty === '' && $rows.find('td:contains(" Penalty flag thrown prior to the snap...")').length > 0) {
+    } else if ($rows.find('td:contains(" Penalty flag thrown prior to the snap...")').length > 0) {
+      console.log($rows);
       is_play = true;
       play_type = "none";
 
@@ -878,6 +903,8 @@ function parseLog(log_table,hidden_data,logid) {
       down = snap[1].split('(')[1].split('and')[0].trim();
       dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
+
+      console.log("presnap penalty at Q" + qtr + " " + time);
 
       //use play identifier to get score and timeout data from hidden data
       play_id_start = 'PZ00' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, "");
@@ -999,8 +1026,11 @@ function parseLog(log_table,hidden_data,logid) {
       // necessary for handling edge cases like a blocked FG imediately followed by another FG attempt
       $start = new_stop;
       has_new_stop = false;
-      i--;
+      if (!in_lookahead) {
+        i--;
+      }
     }
+    in_lookahead = false;
     is_play = false;
   }
   return game_log;
