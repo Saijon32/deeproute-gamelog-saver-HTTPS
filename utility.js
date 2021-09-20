@@ -168,6 +168,7 @@ function parseLog(log_table,hidden_data,logid) {
     penalized_id = '';
     penalized_slug = '';
     penalized_team = '';
+    penalty_msg = '';
 
     kick_result = '';
     kick_distance = '';
@@ -336,6 +337,23 @@ function parseLog(log_table,hidden_data,logid) {
             penalty_result = "replay down";
 
             penalized_team = "off";
+
+            if ($rows.find('td:contains("Penalty <b>declined</b> by the ")').length > 0) {
+              penalty_type = "declined";
+            } else {
+              penalty_type = "accepted";
+            }
+          } else if ($next_rows.find('td:contains("12 men on the field")').length > 0) {
+            if ($next_rows.find('td:contains(" on the defense")').length > 0) {
+              penalty_msg = $next_rows.find('td:contains("12 men on the field")').html().match(/(.*) on the defense\. \D*(\d+)\D*\s\D*(\d+)\D* yard penalty\./);
+              penalized_team = "def";
+            } else {
+              penalty_msg = $next_rows.find('td:contains("12 men on the field")').html().match(/(.*)\.  \D*(\d+)\D*\s\D*(\d+)\D* yard penalty\./);
+              penalized_team = "off";
+            }
+            penalty = penalty_msg[1];
+            penalty_yards = Math.round((parseInt(penalty_msg[2]) + parseInt(penalty_msg[3]) / 100) * 100) / 100;
+            penalty_result = "replay down";
 
             if ($rows.find('td:contains("Penalty <b>declined</b> by the ")').length > 0) {
               penalty_type = "declined";
