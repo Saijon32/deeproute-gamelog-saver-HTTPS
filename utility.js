@@ -924,11 +924,18 @@ function parseLog(log_table,hidden_data,logid) {
 
       dist_decimal = Math.round((dist_yards + dist_inches / 36) * 100) / 100;
 
-      penalty_msg = $rows.find('td:contains(" yard penalty.")').html().match(/(.*)\. (.*) on the ([A-Z]+)\. \D*(\d+)\D*\s\D*(\d+)\D* yard penalty\./);
-      penalty = penalty_msg[1];
-      penalized_slug = penalty_msg[2];
-      penalized_side = penalty_msg[3];
-      penalty_yards = Math.round((parseInt(penalty_msg[4]) + parseInt(penalty_msg[5]) / 100) * 100) / 100;
+      if ($rows.find('td:contains("Delay of game penalty on the ")').length > 0) {
+        penalty_msg = $rows.find('td:contains("Delay of game penalty on the ")').html().match(/(.*) penalty on the ([A-Z]+)\. \D*(\d+)\D*\s\D*(\d+)\D* yard penalty\./);
+        penalty = penalty_msg[1];
+        penalized_side = penalty_msg[2];
+        penalty_yards = Math.round((parseInt(penalty_msg[3]) + parseInt(penalty_msg[4]) / 100) * 100) / 100;
+      } else {
+        penalty_msg = $rows.find('td:contains(" yard penalty.")').html().match(/(.*)\. (.*) on the ([A-Z]+)\. \D*(\d+)\D*\s\D*(\d+)\D* yard penalty\./);
+        penalty = penalty_msg[1];
+        penalized_slug = penalty_msg[2];
+        penalized_side = penalty_msg[3];
+        penalty_yards = Math.round((parseInt(penalty_msg[4]) + parseInt(penalty_msg[5]) / 100) * 100) / 100;
+      }
 
       if (penalized_side.toUpperCase() === "OFFENSE") {
         penalized_team = "off";
