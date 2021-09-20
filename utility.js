@@ -493,7 +493,7 @@ function parseLog(log_table,hidden_data,logid) {
               }
             } else if ($next_rows.find('td:contains("The interception was returned ")').length > 0) {
               if ($next_rows.find('td:contains(" for a TOUCHDOWN!")').length > 0) {
-                return_yards = parseInt($next_rows.find('td:contains("The interception was returned ")').html().match(/The interception was returned (\d*) for a TOUCHDOWN!/)[1]);
+                return_yards = parseInt($next_rows.find('td:contains("The interception was returned ")').html().match(/The interception was returned (\d*) yards for a TOUCHDOWN!/)[1]);
                 return_result = "touchdown";
               } else {
                 return_yards = parseInt($next_rows.find('td:contains("The interception was returned ")').html().match(/The interception was returned (\d*) yards\./)[1]);
