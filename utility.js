@@ -534,7 +534,7 @@ function parseLog(log_table,hidden_data,logid) {
         //1st read status
         if ($rows.find('td:contains("decided against throwing")').length > 0) {
           first_read = 'covered';
-        } else if (pass_result == 'throw away') {
+        } else if (pass_type == 'throw away' || pass_type == 'dump off') {
           first_read = 'none';
         } else {
           first_read = 'open';
