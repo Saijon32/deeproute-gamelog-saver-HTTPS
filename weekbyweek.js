@@ -1,18 +1,18 @@
 $(document).ready(function () {
     //create a download all button
-    $button = $('<input id="download_logs" type="button" class="btn" value="Download Game Logs" style="margin-bottom:5px">');
+    $button = $('<input id="download_games" type="button" class="btn" value="Download Games" style="margin-bottom:5px">');
     $button.insertAfter('a[name="topper"]');
 
     //attach event handlers
-    $('#download_logs').click(function () {
+    $('#download_games').click(function () {
         if (confirm('This will download game logs for all the games showing below, which may take a long time. Click OK if you would like to continue.')) {
 
             //get a list of all logs to download
             var log_list = $('a[title="Detailed Play Log"]');
 
             //disable the button
-            $('#download_logs').prop("disabled", true);
-            $('#download_logs').prop('value', 'processed log ' + 0 + ' of ' + log_list.length + ' ...');
+            $('#download_games').prop("disabled", true);
+            $('#download_games').prop('value', 'processed log ' + 0 + ' of ' + log_list.length + ' ...');
 
             //setup variable to track progress
             var done_count = 0;
@@ -33,7 +33,9 @@ $(document).ready(function () {
                         parseLog(
                             $(data).find('center'),
                             $(data).find('#play1').parent(),
-                            logid
+                            logid,
+                            true,
+                            false
                         )
                     );
 
@@ -41,7 +43,7 @@ $(document).ready(function () {
                     done_count++;
 
                     //update the progress in the title of the download button
-                    $('#download_logs').prop('value', 'processed log ' + done_count + ' of ' + log_list.length + ' ...');
+                    $('#download_games').prop('value', 'processed log ' + done_count + ' of ' + log_list.length + ' ...');
 
                     if (done_count == log_list.length) {
                         edited_log = [];
@@ -58,8 +60,8 @@ $(document).ready(function () {
                         download(json2csv(edited_log), 'gamelogs_lg_' + league_number + '.csv', 'text.csv')
 
                         //enable the button and reset it's title
-                        $('#download_logs').prop('value', 'Download Game Logs');
-                        $('#download_logs').prop("disabled", false);
+                        $('#download_games').prop('value', 'Download Games');
+                        $('#download_games').prop("disabled", false);
                     }
                 });
             });

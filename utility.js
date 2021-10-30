@@ -1,5 +1,5 @@
 //main function used to parse the table element containing the game log
-function parseLog(log_table,hidden_data,logid) {
+function parseLog(log_table,hidden_data,logid, getlog, getlineups) {
   var game_log = [];
 
   //format data into searchable jquery object
@@ -1149,4 +1149,9 @@ function json2csv(json) {
     csv += Object.values(json_record).join(',') + '\n';
   });
   return csv;
+}
+
+// make sure the start button is inactive if no boxes are checked, active if any are
+function verifyBoxesChecked() {
+  console.log("This function was called!");
 }

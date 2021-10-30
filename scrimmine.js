@@ -30,7 +30,9 @@ $(document).ready(function () {
                 var json_data = parseLog(
                     $(data).find('center'),
                     $(data).find('#play1').parent(),
-                    logid
+                    logid,
+                    true,
+                    false
                 );
 
                 edited_log = [];

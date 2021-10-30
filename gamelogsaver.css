@@ -1,0 +1,33 @@
+#csv_download_panel {
+	background-color: lightgrey;
+	display: inline-block;
+	margin-bottom: 5px;
+}
+
+#csv_download_panel > span {
+	padding: 5px;
+}
+
+#csv_download_panel > span > label {
+	display: inline;
+	margin-bottom: 0px;
+	font-size: 7pt;
+}
+
+input[type="checkbox"].csv_checkbox {
+	margin-top: 0px;
+}
+
+input[type="button"]#download_csv {
+	font-size: 10pt;
+	font-weight: bold;
+	height: 30px;
+}
+
+input[type="button"]#download_csv[disabled] {
+	cursor: default;
+    background-color: #e6e6e6;
+    background-image: none;
+    opacity: 0.65;
+    box-shadow: none;
+}
