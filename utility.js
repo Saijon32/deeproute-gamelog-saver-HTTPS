@@ -183,6 +183,78 @@ function parseLog(log_table,hidden_data,logid, getlog, getlineups) {
 
     exec_time = '';
 
+    off_pos1_slug = '';
+    off_pos2_slug = '';
+    off_pos3_slug = '';
+    off_pos4_slug = '';
+    off_pos5_slug = '';
+    off_pos6_slug = '';
+    off_pos7_slug = '';
+    off_pos8_slug = '';
+    off_pos9_slug = '';
+    off_pos10_slug = '';
+    off_pos11_slug = '';
+
+    off_pos1 = '';
+    off_pos2 = '';
+    off_pos3 = '';
+    off_pos4 = '';
+    off_pos5 = '';
+    off_pos6 = '';
+    off_pos7 = '';
+    off_pos8 = '';
+    off_pos9 = '';
+    off_pos10 = '';
+    off_pos11 = '';
+
+    off_id1 = '';
+    off_id2 = '';
+    off_id3 = '';
+    off_id4 = '';
+    off_id5 = '';
+    off_id6 = '';
+    off_id7 = '';
+    off_id8 = '';
+    off_id9 = '';
+    off_id10 = '';
+    off_id11 = '';
+
+    def_pos1_slug = '';
+    def_pos2_slug = '';
+    def_pos3_slug = '';
+    def_pos4_slug = '';
+    def_pos5_slug = '';
+    def_pos6_slug = '';
+    def_pos7_slug = '';
+    def_pos8_slug = '';
+    def_pos9_slug = '';
+    def_pos10_slug = '';
+    def_pos11_slug = '';
+
+    def_pos1 = '';
+    def_pos2 = '';
+    def_pos3 = '';
+    def_pos4 = '';
+    def_pos5 = '';
+    def_pos6 = '';
+    def_pos7 = '';
+    def_pos8 = '';
+    def_pos9 = '';
+    def_pos10 = '';
+    def_pos11 = '';
+
+    def_id1 = '';
+    def_id2 = '';
+    def_id3 = '';
+    def_id4 = '';
+    def_id5 = '';
+    def_id6 = '';
+    def_id7 = '';
+    def_id8 = '';
+    def_id9 = '';
+    def_id10 = '';
+    def_id11 = '';
+
     //check for valid non-special teams play
     if ($rows.find('td:contains("- The ball is snapped to")').length == 1) {
       is_play = true;
@@ -1048,6 +1120,52 @@ function parseLog(log_table,hidden_data,logid, getlog, getlineups) {
           penalized_team: penalized_team,
           penalized_pos: penalized_pos,
           penalized_id: penalized_id
+        },
+        lineups: {
+          off_pos1: off_pos1,
+          off_id1: off_id1,
+          off_pos2: off_pos2,
+          off_id2: off_id2,
+          off_pos3: off_pos3,
+          off_id3: off_id3,
+          off_pos4: off_pos4,
+          off_id4: off_id4,
+          off_pos5: off_pos5,
+          off_id5: off_id5,
+          off_pos6: off_pos6,
+          off_id6: off_id6,
+          off_pos7: off_pos7,
+          off_id7: off_id7,
+          off_pos8: off_pos8,
+          off_id8: off_id8,
+          off_pos9: off_pos9,
+          off_id9: off_id9,
+          off_pos10: off_pos10,
+          off_id10: off_id10,
+          off_pos11: off_pos11,
+          off_id11: off_id11,
+          def_pos1: off_pos1,
+          def_id1: off_id1,
+          def_pos2: off_pos2,
+          def_id2: off_id2,
+          def_pos3: off_pos3,
+          def_id3: off_id3,
+          def_pos4: off_pos4,
+          def_id4: off_id4,
+          def_pos5: off_pos5,
+          def_id5: off_id5,
+          def_pos6: off_pos6,
+          def_id6: off_id6,
+          def_pos7: off_pos7,
+          def_id7: off_id7,
+          def_pos8: off_pos8,
+          def_id8: off_id8,
+          def_pos9: off_pos9,
+          def_id9: off_id9,
+          def_pos10: off_pos10,
+          def_id10: off_id10,
+          def_pos11: off_pos11,
+          def_id11: off_id11,
         }
       };
       game_log.push(play);
