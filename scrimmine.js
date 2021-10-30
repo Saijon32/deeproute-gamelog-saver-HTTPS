@@ -33,8 +33,17 @@ $(document).ready(function () {
                     logid
                 );
 
+                edited_log = [];
+                json_data.forEach(function(play) {
+                    let edited_play = {
+                        ...play.identifiers,
+                        ...play.results
+                    }
+                    edited_log.push(edited_play);
+                });
+
                 //download data
-                download(json2csv(json_data), 'gamelog_' + this.url.split('viewpbp=')[1] + '.csv', 'text.csv');
+                download(json2csv(edited_log), 'gamelog_' + this.url.split('viewpbp=')[1] + '.csv', 'text.csv');
 
                 //update icon
                 $('a[href="' + this.url + '"]:eq(0)').find('img:eq(0)').attr('src','https://cdn0.iconfinder.com/data/icons/harmonicons-02/64/check-box-128.png');
