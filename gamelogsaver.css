@@ -2,6 +2,7 @@
 	background-color: lightgrey;
 	display: inline-block;
 	margin-bottom: 5px;
+	border-radius: 4px;
 }
 
 #csv_download_panel > span {

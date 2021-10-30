@@ -15,15 +15,12 @@ $(document).ready(function () {
     $lineupbox_span.append('<label for="download_lineups"> Lineups</label>');
 
     $(document).on("click", "input.csv_checkbox", function () {
-        console.log("Called the anonymous function!");
         checked = $('input[type="checkbox"].csv_checkbox:checked').length;
 
         if (!checked) {
             $('#download_csv').prop("disabled", true);
-            console.log("No boxes are checked. The button should be disabled!");
         } else {
             $('#download_csv').prop("disabled", false);
-            console.log("Some boxes are checked. The button should be active!");
         }
     });
 
