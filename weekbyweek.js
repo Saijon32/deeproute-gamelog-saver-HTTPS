@@ -38,6 +38,26 @@ $(document).ready(function () {
             //get a list of all logs to download
             var log_list = $('a[title="Detailed Play Log"]');
 
+            let week_label = "";
+            let week_headers = $('span[style="font-weight:bold; font-size:15px;"]').filter(function() {
+                return $(this).text().match(/Games for (\w*) ?Week (\d+)/);
+            });
+            if (week_headers.length == 1) {
+                let match = $(week_headers[0]).text().match(/Games for (\w*) ?Week (\d+)/);
+                let season = match[1];
+                let week = parseInt(match[2]);
+
+                if (season === "Preseason") {
+                    week_label = "_pre" + week;
+                }
+                else if (season === "Playoffs") {
+                    week_label = "_post" + week;
+                }
+                else {
+                    week_label = "_reg" + week;
+                }
+            }
+
             //disable the button
             $('#download_games').prop("disabled", true);
             $('.csv_checkbox').prop("disabled", true);
@@ -102,10 +122,10 @@ $(document).ready(function () {
                         //download the file
                         var league_number = window.location.search.split('myleagueno=')[1].split('#')[0];
                         if (getlogs) {
-                            download(json2csv(edited_log), 'gamelogs_lg_' + league_number + '.csv', 'text.csv');
+                            download(json2csv(edited_log), 'gamelogs_lg_' + league_number + week_label + '.csv', 'text.csv');
                         }
                         if (getlineups) {
-                            download(json2csv(lineups), 'gamelineups_lg_' + league_number + '.csv', 'text.csv');
+                            download(json2csv(lineups), 'gamelineups_lg_' + league_number + week_label + '.csv', 'text.csv');
                         }
 
                         //enable the button and reset it's title
