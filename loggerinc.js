@@ -28,30 +28,47 @@ $(document).ready(function () {
 
     //attach event handlers
     $('#download_csv').click(function(){
+        let getlogs = $('input[type="checkbox"]#download_logs').prop("checked");
+        let getlineups = $('input[type="checkbox"]#download_lineups').prop("checked");
+
         let parsed_log = parseLog( 
             $('center'),
             $('#play1').parent(),
             logid,
-            true,
-            true
+            getlogs,
+            getlineups
         );
-        //console.log(parsed_log);
+        
         let edited_log = [];
         let lineups = [];
         parsed_log.forEach(function(play) {
-            let edited_play = {
-                ...play.identifiers,
-                ...play.results
+            if(getlogs) {
+                let edited_play = {
+                    ...play.identifiers,
+                    ...play.results
+                }
+                edited_log.push(edited_play);
             }
-            edited_log.push(edited_play);
+            if (getlineups && (play.results.play_type == "pass" || play.results.play_type == "run")) {
+                let lineup = {
+                    ...play.identifiers,
+                    off_team: play.results.off_team,
+                    def_team: play.results.def_team,
+                    off_package: play.results.off_package,
+                    off_subpackage: play.results.off_subpackage,
+                    def_package: play.results.def_package,
+                    ...play.lineups
+                }
+                lineups.push(lineup);
+            }
         });
-        //console.log(edited_log);
-        download(
-            json2csv(
-                edited_log
-            ), 
-            'gamelog_' + window.location.search.split('viewpbp=')[1] + '.csv', 'text.csv'
-        )
+
+        if (getlogs) {
+            download(json2csv(edited_log), 'gamelog_' + window.location.search.split('viewpbp=')[1] + '.csv', 'text.csv');
+        }
+        if (getlineups) {
+            download(json2csv(lineups), 'gamelineups_' + window.location.search.split('viewpbp=')[1] + '.csv', 'text.csv');
+        }
     });
 });
 

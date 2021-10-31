@@ -31,6 +31,10 @@ $(document).ready(function () {
     $('#download_games').click(function () {
         if (confirm('This will download game logs for all the games showing below, which may take a long time. Click OK if you would like to continue.')) {
 
+            // are we downloading logs and/or lineups?
+            let getlogs = $('input[type="checkbox"]#download_logs').prop("checked");
+            let getlineups = $('input[type="checkbox"]#download_lineups').prop("checked");
+
             //get a list of all logs to download
             var log_list = $('a[title="Detailed Play Log"]');
 
@@ -59,8 +63,8 @@ $(document).ready(function () {
                             $(data).find('center'),
                             $(data).find('#play1').parent(),
                             logid,
-                            true,
-                            true
+                            getlogs,
+                            getlineups
                         )
                     );
 
@@ -72,17 +76,37 @@ $(document).ready(function () {
 
                     if (done_count == log_list.length) {
                         edited_log = [];
+                        lineups = [];
                         master_log.forEach(function(play) {
-                            let edited_play = {
-                                ...play.identifiers,
-                                ...play.results
+                            if(getlogs) {
+                                let edited_play = {
+                                    ...play.identifiers,
+                                    ...play.results
+                                }
+                                edited_log.push(edited_play);
                             }
-                            edited_log.push(edited_play);
+                            if (getlineups && (play.results.play_type == "pass" || play.results.play_type == "run")) {
+                                let lineup = {
+                                    ...play.identifiers,
+                                    off_team: play.results.off_team,
+                                    def_team: play.results.def_team,
+                                    off_package: play.results.off_package,
+                                    off_subpackage: play.results.off_subpackage,
+                                    def_package: play.results.def_package,
+                                    ...play.lineups
+                                }
+                                lineups.push(lineup);
+                            }
                         });
 
                         //download the file
                         var league_number = window.location.search.split('myleagueno=')[1].split('#')[0];
-                        download(json2csv(edited_log), 'gamelogs_lg_' + league_number + '.csv', 'text.csv')
+                        if (getlogs) {
+                            download(json2csv(edited_log), 'gamelogs_lg_' + league_number + '.csv', 'text.csv');
+                        }
+                        if (getlineups) {
+                            download(json2csv(lineups), 'gamelineups_lg_' + league_number + '.csv', 'text.csv');
+                        }
 
                         //enable the button and reset it's title
                         $('#download_games').prop('value', 'Download Games');

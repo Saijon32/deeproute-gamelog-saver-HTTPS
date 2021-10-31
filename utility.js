@@ -1,5 +1,5 @@
 //main function used to parse the table element containing the game log
-function parseLog(log_table,hidden_data,logid, getlog, getlineups) {
+function parseLog(log_table,hidden_data,logid, getlogs, getlineups) {
   var game_log = [];
 
   //format data into searchable jquery object
