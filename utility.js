@@ -220,12 +220,12 @@ function parseLog(log_table,hidden_data,logid, getlogs, getlineups) {
           $links = $(this).find('a');
           $links.each(function() {
             lineup_pos[lineup_itr] = $(this)[0].previousSibling.nodeValue.trim();
-            lineup_id[lineup_itr] = $(this)[0].href.match(/js=oneplayer&lookatplayer=(\d\d\d\d\d)&myleagueno=/)[1];
+            lineup_id[lineup_itr] = $(this)[0].href.match(/js=oneplayer&lookatplayer=(\d+)&myleagueno=/)[1];
             //console.log("player with ID " + lineup_id[lineup_itr] + " playing at " + lineup_pos[lineup_itr]);
             lineup_itr++;
-            if ($links.length == 5 && lineup_itr == 5) {
-              // edge case handling for that weird bug where the last WR displays only an ID, not a name+link
-              let edgecase = $(this)[0].nextSibling.nodeValue.match(/ (\w+?) (\d\d\d\d\d)/);
+            if ($links.length == 5 && (lineup_itr == 5 || lineup_itr == 16)) {
+              // edge case handling for that weird bug where the last top-row offensive or defensive player displays only an ID, not a name+link
+              let edgecase = $(this)[0].nextSibling.nodeValue.match(/ (\w+?) (\d+)/);
               lineup_pos[lineup_itr] = edgecase[1];
               lineup_id[lineup_itr] = edgecase[2];
               lineup_itr++;
