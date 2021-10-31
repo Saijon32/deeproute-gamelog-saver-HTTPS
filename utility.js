@@ -1,5 +1,5 @@
 //main function used to parse the table element containing the game log
-function parseLog(log_table,hidden_data,logid) {
+function parseLog(log_table,hidden_data,logid, getlogs, getlineups) {
   var game_log = [];
 
   //format data into searchable jquery object
@@ -89,7 +89,12 @@ function parseLog(log_table,hidden_data,logid) {
   for (i = 0; i < $stop_list.length; i++) {
 
     //get list of elements to read
-    $rows = $start.nextUntil($stop_list.eq(i));
+    $rows = $start.nextUntil($stop_list.eq(i)).addBack();
+    //$rows = $start.nextUntil($stop_list.eq(i));
+    // if (i == 1) {
+    //   console.log($start);
+    //   console.log($rows);
+    // }
 
     if (i === 0) {
       // opening play was a KRTD, so team abbrs are flipped relative to team names. Reverse them.
@@ -122,6 +127,7 @@ function parseLog(log_table,hidden_data,logid) {
     cvr_depth = '';
     roamer_job = '';
     def_blitz = '';
+    def_into_coverage = '';
     total_yards = '';
     play_result = '';
 
@@ -182,6 +188,9 @@ function parseLog(log_table,hidden_data,logid) {
 
     exec_time = '';
 
+    lineup_pos = [];
+    lineup_id = [];
+
     //check for valid non-special teams play
     if ($rows.find('td:contains("- The ball is snapped to")').length == 1) {
       is_play = true;
@@ -199,6 +208,39 @@ function parseLog(log_table,hidden_data,logid) {
       down = snap[1].split('(')[1].split('and')[0].trim();
       dist = snap[1].split('(')[1].split(';')[0].split('and')[1].trim();
       yard_line = snap[1].split(';')[1].split(')')[0].trim();
+
+      //console.log($rows.find('td:contains("Offensive Players :")'));
+      if (getlineups && $rows.find('td:contains("Offensive Players :")').length == 1) {
+        $snap = $rows.find('td:contains("- The ball is snapped to")');
+        lineup_slugs = [];
+        $lineups = $rows.eq(0).nextUntil($snap.parent()).addBack();
+
+        let lineup_itr = 0;
+        $lineups.each(function() {
+          $links = $(this).find('a');
+          $links.each(function() {
+            lineup_pos[lineup_itr] = $(this)[0].previousSibling.nodeValue.trim();
+            lineup_id[lineup_itr] = $(this)[0].href.match(/js=oneplayer&lookatplayer=(\d\d\d\d\d)&myleagueno=/)[1];
+            //console.log("player with ID " + lineup_id[lineup_itr] + " playing at " + lineup_pos[lineup_itr]);
+            lineup_itr++;
+            if ($links.length == 5 && lineup_itr == 5) {
+              // edge case handling for that weird bug where the last WR displays only an ID, not a name+link
+              let edgecase = $(this)[0].nextSibling.nodeValue.match(/ (\w+?) (\d\d\d\d\d)/);
+              lineup_pos[lineup_itr] = edgecase[1];
+              lineup_id[lineup_itr] = edgecase[2];
+              lineup_itr++;
+            }
+          });
+        })
+
+        if (lineup_itr !== 22) {
+          console.log("Well, shit. " + lineup_itr + " players at Q" + qtr + " " + time);
+          for (let j=0; j<22; j++) {
+            console.log("player " + lineup_id[j] + " playing " + lineup_pos[j]);
+          }
+        }
+
+      }
       
       //use play identifier to get score and timeout data from hidden data
       play_id_start = 'OFF1' + qtr + time.split(':')[0] + time.split(':')[1] + down.replaceAll(/\D/g, ""); //FIXME Adding dist would be more precise, but it will fail on things like 5- since it's actuall 4.xx yards
@@ -977,73 +1019,123 @@ function parseLog(log_table,hidden_data,logid) {
       }
 
       var play = {
-        league: league,
-        year: year,
-        type: type,
-        week: week,
-        quarter: qtr,
-        time: time,
-        down: down,
-        distance: dist_decimal,
-        yard_line: yard_line,
-        points_home: points_home,
-        points_away: points_away,
-        timeouts_home: timeouts_home,
-        timeouts_away: timeouts_away,
-        possession: possession,
-        off_team: off_team,
-        off_package: off_pkg,
-        off_subpackage: off_subpackage,
-        off_formation: off_formation,
-        off_play: off_play,
-        play_type: play_type,
-        def_team: def_team,
-        def_package: def_pkg,
-        cover_type: cvr_type,
-        cover_depth: cvr_depth,
-        roamer_job: roamer_job,
-        def_blitzer: def_blitz,
-        total_yards: total_yards,
-        play_result: play_result,
-        passer_id: passer_id,
-        runner: runner,
-        runner_id: runner_id,
-        hole: hole,
-        run_type: run_type,
-        pass_type: pass_type,
-        pass_result: pass_result,
-        pass_direction: pass_direction,
-        first_read: first_read,
-        first_target: first_target,
-        first_target_id: first_target_id,
-        final_target: final_target,
-        final_target_id: final_target_id,
-        first_defender: first_defender,
-        first_defender_id: first_defender_id,
-        final_defender: final_defender,
-        final_defender_id: final_defender_id,
-        pass_disruptor: pass_disruptor,
-        pass_disruptor_id: pass_disruptor_id,
-        fumble_recovery_id: fumble_recovery_id,
-        pressure_type: pressure_type,
-        target_distance: pass_yards,
-        yards_after_catch: yac,
-        exec_time: exec_time,
-        kick_team: kick_team,
-        rec_team: rec_team,
-        kick_result: kick_result,
-        kick_distance: kick_distance,
-        return_yards: return_yards,
-        return_result: return_result,
-        kicker_id: kicker_id,
-        returner_id: returner_id,
-        penalty: penalty,
-        penalty_type: penalty_type,
-        penalty_yards: penalty_yards,
-        penalty_result: penalty_result,
-        penalized_team: penalized_team,
-        penalized_pos: penalized_pos,
-        penalized_id: penalized_id
+        identifiers: {
+          league: league,
+          year: year,
+          type: type,
+          week: week,
+          quarter: qtr,
+          time: time,
+          down: down,
+          distance: dist_decimal,
+          yard_line: yard_line
+        },
+        results: {
+          points_home: points_home,
+          points_away: points_away,
+          timeouts_home: timeouts_home,
+          timeouts_away: timeouts_away,
+          possession: possession,
+          off_team: off_team,
+          off_package: off_pkg,
+          off_subpackage: off_subpackage,
+          off_formation: off_formation,
+          off_play: off_play,
+          play_type: play_type,
+          def_team: def_team,
+          def_package: def_pkg,
+          cover_type: cvr_type,
+          cover_depth: cvr_depth,
+          roamer_job: roamer_job,
+          def_blitzer: def_blitz,
+          total_yards: total_yards,
+          play_result: play_result,
+          passer_id: passer_id,
+          runner: runner,
+          runner_id: runner_id,
+          hole: hole,
+          run_type: run_type,
+          pass_type: pass_type,
+          pass_result: pass_result,
+          pass_direction: pass_direction,
+          first_read: first_read,
+          first_target: first_target,
+          first_target_id: first_target_id,
+          final_target: final_target,
+          final_target_id: final_target_id,
+          first_defender: first_defender,
+          first_defender_id: first_defender_id,
+          final_defender: final_defender,
+          final_defender_id: final_defender_id,
+          pass_disruptor: pass_disruptor,
+          pass_disruptor_id: pass_disruptor_id,
+          fumble_recovery_id: fumble_recovery_id,
+          pressure_type: pressure_type,
+          target_distance: pass_yards,
+          yards_after_catch: yac,
+          exec_time: exec_time,
+          kick_team: kick_team,
+          rec_team: rec_team,
+          kick_result: kick_result,
+          kick_distance: kick_distance,
+          return_yards: return_yards,
+          return_result: return_result,
+          kicker_id: kicker_id,
+          returner_id: returner_id,
+          penalty: penalty,
+          penalty_type: penalty_type,
+          penalty_yards: penalty_yards,
+          penalty_result: penalty_result,
+          penalized_team: penalized_team,
+          penalized_pos: penalized_pos,
+          penalized_id: penalized_id
+        },
+        lineups: {
+          off_pos1: lineup_pos[0],
+          off_id1: lineup_id[0],
+          off_pos2: lineup_pos[1],
+          off_id2: lineup_id[1],
+          off_pos3: lineup_pos[2],
+          off_id3: lineup_id[2],
+          off_pos4: lineup_pos[3],
+          off_id4: lineup_id[3],
+          off_pos5: lineup_pos[4],
+          off_id5: lineup_id[4],
+          off_pos6: lineup_pos[5],
+          off_id6: lineup_id[5],
+          off_pos7: lineup_pos[6],
+          off_id7: lineup_id[6],
+          off_pos8: lineup_pos[7],
+          off_id8: lineup_id[7],
+          off_pos9: lineup_pos[8],
+          off_id9: lineup_id[8],
+          off_pos10: lineup_pos[9],
+          off_id10: lineup_id[9],
+          off_pos11: lineup_pos[10],
+          off_id11: lineup_id[10],
+          def_pos1: lineup_pos[11],
+          def_id1: lineup_id[11],
+          def_pos2: lineup_pos[12],
+          def_id2: lineup_id[12],
+          def_pos3: lineup_pos[13],
+          def_id3: lineup_id[13],
+          def_pos4: lineup_pos[14],
+          def_id4: lineup_id[14],
+          def_pos5: lineup_pos[15],
+          def_id5: lineup_id[15],
+          def_pos6: lineup_pos[16],
+          def_id6: lineup_id[16],
+          def_pos7: lineup_pos[17],
+          def_id7: lineup_id[17],
+          def_pos8: lineup_pos[18],
+          def_id8: lineup_id[18],
+          def_pos9: lineup_pos[19],
+          def_id9: lineup_id[19],
+          def_pos10: lineup_pos[20],
+          def_id10: lineup_id[20],
+          def_pos11: lineup_pos[21],
+          def_id11: lineup_id[21],
+        }
       };
       game_log.push(play);
     }
@@ -1144,4 +1236,9 @@ function json2csv(json) {
     csv += Object.values(json_record).join(',') + '\n';
   });
   return csv;
+}
+
+// make sure the start button is inactive if no boxes are checked, active if any are
+function verifyBoxesChecked() {
+  console.log("This function was called!");
 }

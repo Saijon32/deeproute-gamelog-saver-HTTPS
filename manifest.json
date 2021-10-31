@@ -26,6 +26,9 @@
                 "jquery-3.4.1.min.js",
                 "utility.js",
                 "weekbyweek.js"
+            ],
+            "css": [
+                "gamelogsaver.css"
             ]
         },
         {
@@ -36,6 +39,9 @@
                 "jquery-3.4.1.min.js",
                 "utility.js",
                 "loggerinc.js"
+            ],
+            "css": [
+                "gamelogsaver.css"
             ]
         }
     ]
