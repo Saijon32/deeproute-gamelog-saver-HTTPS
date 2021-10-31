@@ -60,7 +60,7 @@ $(document).ready(function () {
                             $(data).find('#play1').parent(),
                             logid,
                             true,
-                            false
+                            true
                         )
                     );
 

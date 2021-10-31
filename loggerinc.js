@@ -33,7 +33,7 @@ $(document).ready(function () {
             $('#play1').parent(),
             logid,
             true,
-            false
+            true
         );
         //console.log(parsed_log);
         let edited_log = [];
