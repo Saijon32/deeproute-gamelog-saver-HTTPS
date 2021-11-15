@@ -11,9 +11,13 @@ function parseLog(log_table,hidden_data,logid, getlogs, getlineups) {
     ).parent();
 
   // get an ordered listing of all kickoff plays, to make lookups possible
-  $kickoff_list = $(hidden_data).find('input[value^=KRNW], input[value^=KT], input[value^=KRSQ], input[value^=FK]');
+  $kickoff_list = $(hidden_data).find('input[value^=KRNW], input[value^=KT], input[value^=KRSQ], input[value^=FK], input[value^=OSKL], input[value^=OSKS]');
   //console.log($kickoff_list);
   kickoff_ptr = 0;
+
+  // get an ordered list of all onside kick recoveries
+  $onsides_list = $(hidden_data).find('input[value^=OSKO]');
+  onsides_ptr = 0;
 
   // parse logid to get league, year, week
   var league;
@@ -52,8 +56,9 @@ function parseLog(log_table,hidden_data,logid, getlogs, getlineups) {
 
   first_Q1 = $log_data.find('td[colspan="100%"]:contains("- Q1"):eq(0)');
   $pre_first_snap = $start.nextUntil(first_Q1);
-  kickoff_list = $pre_first_snap.find('td:contains(" yards for a TOUCHDOWN!")');
-  if (kickoff_list.length % 2 == 1) {
+  opening_kickoff_list = $pre_first_snap.find('td:contains(" yards for a TOUCHDOWN!")');
+
+  if (opening_kickoff_list.length % 2 == 1) {
     // if the game begins with an odd number of consecutive kickoff return touchdowns, flip the order of the team names
     let oldAbbr1 = teams[0];
     teams[0] = teams[1];
@@ -874,6 +879,65 @@ function parseLog(log_table,hidden_data,logid, getlogs, getlineups) {
       yard_line = "Own 35";
       //console.log("kickoff_ptr = " + kickoff_ptr + ", incrementing...");
       kickoff_ptr++;
+    } else if ($rows.find('td:contains(" onside kick")').length > 0) {
+      is_play = true;
+
+      kickoff_state = $kickoff_list.eq(kickoff_ptr).val();
+      qtr = kickoff_state.substring(4, 5);
+      time = kickoff_state.substring(5, 7) + ":" + kickoff_state.substring(7, 9);
+      points_away = kickoff_state.substring(14, 16);
+      points_home = kickoff_state.substring(16, 18);
+      timeouts_away = kickoff_state.substring(26, 27);
+      timeouts_home = kickoff_state.substring(27, 28);
+      possession = kickoff_state.substring(30, 31);
+
+      if (kickoff_state.substring(0, 4) == "OSKS") {
+        play_type = "surprise onside kick";
+
+        onsides_msg = $rows.find('td:contains(" has attempted a surprise onside kick!")').html();
+        kicking_name = onsides_msg.match(/\)<\/b> - <b>(.*)<\/b> has attempted a surprise onside kick\!/)[1];
+      } else if (kickoff_state.substring(0, 4) == "OSKL") {
+        play_type = "onside kick";
+
+        onsides_msg = $rows.find('td:contains(" is lining up to try an onside kick.")').html();
+        kicking_name = onsides_msg.match(/\)<\/b> - <b>(.*)<\/b> is lining up to try an onside kick\./)[1];
+      }
+
+      recovery_state = $onsides_list.eq(onsides_ptr).val();
+
+      recovery_possession = recovery_state.substring(30, 31);
+      kick_landing_yards = parseInt(recovery_state.substring(22, 24));
+      kick_landing_inches = parseInt(recovery_state.substring(24, 26));
+      kick_landing = Math.round((kick_landing_yards + kick_landing_inches / 36) * 100) / 100;
+
+      if (possession == recovery_possession) {
+        kick_result = "onsides successful";
+        kick_distance = kick_landing - 35;
+
+        if (i === 0) {
+          // if the game begins with a successful onside kick, flip the order of the team names
+          let oldAbbr1 = teams[0];
+          teams[0] = teams[1];
+          teams[1] = oldAbbr1;
+        }
+      } else {
+        kick_result = "onsides failed";
+        kick_distance = 65 - kick_landing;
+      }
+
+      if (kicking_name == name1) {
+        rec_team = teams[1];
+        kick_team = teams[0];
+      } else if (kicking_name == name2) {
+        rec_team = teams[0];
+        kick_team = teams[1];
+      } else {
+        console.log("Unrecognized kicking team name: '" + kicking_name + "'");
+      }
+
+      yard_line = "Own 35";
+      kickoff_ptr++;
+      onsides_ptr++;
     } else if ($rows.find('td:contains(" field goal attempt.")').length > 0) {
       is_play = true;
       play_type = "field goal";
