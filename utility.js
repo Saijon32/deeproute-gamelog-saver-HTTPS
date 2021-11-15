@@ -46,9 +46,19 @@ function parseLog(log_table,hidden_data,logid, getlogs, getlineups) {
   teams.push($log_data.find('td[colspan="100%"]:contains("- Q1"):eq(0)').text().split(' - ')[0].trim());
   teams.push($log_data.find('td[colspan="100%"]:contains("- Q3"):eq(0)').text().split(' - ')[0].trim());
 
-  log_header = $log_data.find('td[colspan="100%"][bgcolor="#eeffee"],[colspan="100%"][bgcolor="#eeeeff"]:contains(" wins the flip "):eq(0)').text();
-  name1 = log_header.split(' wins the flip and will receive. ')[0].trim();
-  name2 = log_header.split(' wins the flip and will receive. ')[1].split(' to kick off.')[0].trim();
+  log_header = $log_data.find('td[colspan="100%"][bgcolor="#eeffee"],[colspan="100%"][bgcolor="#eeeeff"]:contains(" wins the flip "):eq(0)');
+  name1 = log_header.text().split(' wins the flip and will receive. ')[0].trim();
+  name2 = log_header.text().split(' wins the flip and will receive. ')[1].split(' to kick off.')[0].trim();
+
+  first_Q1 = $log_data.find('td[colspan="100%"]:contains("- Q1"):eq(0)');
+  $pre_first_snap = $start.nextUntil(first_Q1);
+  kickoff_list = $pre_first_snap.find('td:contains(" yards for a TOUCHDOWN!")');
+  if (kickoff_list.length % 2 == 1) {
+    // if the game begins with an odd number of consecutive kickoff return touchdowns, flip the order of the team names
+    let oldAbbr1 = teams[0];
+    teams[0] = teams[1];
+    teams[1] = oldAbbr1;
+  }
 
   // picking the first team in each of Q1 and Q3 fails if exactly one half starts with a KRTD
   // if that happens, check to make sure this isn't one team playing itself, 
@@ -90,21 +100,6 @@ function parseLog(log_table,hidden_data,logid, getlogs, getlineups) {
 
     //get list of elements to read
     $rows = $start.nextUntil($stop_list.eq(i)).addBack();
-    //$rows = $start.nextUntil($stop_list.eq(i));
-    // if (i == 1) {
-    //   console.log($start);
-    //   console.log($rows);
-    // }
-
-    if (i === 0) {
-      // opening play was a KRTD, so team abbrs are flipped relative to team names. Reverse them.
-      if ($rows.find('td:contains(" yards for a TOUCHDOWN!")').length == 1) {
-        let oldAbbr1 = teams[0];
-        teams[0] = teams[1];
-        teams[1] = oldAbbr1;
-        //console.log(name1 + " = " + teams[0] + ", " + name2 + " = " + teams[1]);
-      }
-    }
 
     //reset variable values for new play
     off_team = '';
