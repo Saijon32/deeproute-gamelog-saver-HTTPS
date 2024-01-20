@@ -1,5 +1,5 @@
 {
-    "manifest_version": 2,
+    "manifest_version":3,
     "name": "Deeproute.com Gamelog Saver",
     "version": "2021.09.20",
     "description": "A chrome extension that allows players to download the game logs for the DeepRoute.com football game.",
@@ -10,7 +10,7 @@
     "content_scripts": [
         {
             "matches": [
-                "http://deeproute.com/*?js=scrimmine*"
+                "https://deeproute.com/*?js=scrimmine*"
             ],
             "js": [
                 "jquery-3.4.1.min.js",
@@ -20,7 +20,7 @@
         },
         {
             "matches": [
-                "http://deeproute.com/*js=weekbyweek*"
+                "https://deeproute.com/*js=weekbyweek*"
             ],
             "js": [
                 "jquery-3.4.1.min.js",
@@ -33,7 +33,7 @@
         },
         {
             "matches": [
-                "http://deeproute.com/*js=loggerinc*"
+                "https://deeproute.com/*js=loggerinc*"
             ],
             "js": [
                 "jquery-3.4.1.min.js",
